@@ -136,7 +136,8 @@ h264_get_log2_max_frame_num (uint32_t num)
     else if (ret > 16)
         ret = 16;
     /* must be greater than 4 */
-    return ret;
+    //return ret;
+    return 4;
 }
 
 /* Determines the cpbBrNalFactor based on the supplied profile */
@@ -1053,7 +1054,7 @@ void VaapiEncoderH264::resetParams ()
         h264_get_log2_max_frame_num (m_keyPeriod);
     assert (m_log2MaxFrameNum >= 4);
     m_maxFrameNum = (1 << m_log2MaxFrameNum);
-    m_log2MaxPicOrderCnt = m_log2MaxFrameNum + 1;
+    m_log2MaxPicOrderCnt = 6;//m_log2MaxFrameNum + 1;
     m_maxPicOrderCnt = (1 << m_log2MaxPicOrderCnt);
 
     m_maxRefList1Count = m_numBFrames > 0;//m_maxRefList1Count <=1, because of currenent order mechanism
