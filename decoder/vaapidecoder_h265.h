@@ -69,6 +69,7 @@ private:
                   bool newStream);
         bool add(const PicturePtr&, const SliceHeader* const lastSlice);
         void flush();
+        int getSize(){return (int)m_pictures.size();};
 
         RefSet m_stCurrBefore;
         RefSet m_stCurrAfter;
