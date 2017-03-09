@@ -257,6 +257,7 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
             if (videoQualityLevel->size == sizeof(VideoParamsQualityLevel)) {
                 if (videoQualityLevel->level != m_videoParamQualityLevel.level) {
                     PARAMETER_ASSIGN(m_videoParamQualityLevel, *videoQualityLevel);
+                    printf("wdp  %s %s %d, m_videoParamQualityLevel.level = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_videoParamQualityLevel.level);
                     ADJUST_TO_RANGE(m_videoParamQualityLevel.level, VIDEO_PARAMS_QUALITYLEVEL_NONE,
                         VIDEO_PARAMS_QUALITYLEVEL_MAX, "quality level");
                     m_videoParamQualityLevelUpdate = true;
@@ -715,7 +716,7 @@ bool VaapiEncoderBase::mapQualityLevel()
         ERROR("unsupported params encode quality level setting!");
         return false;
     }
-
+    
     if (!mapToRange(qualityLevel,
             0, attrib.value,
             m_videoParamQualityLevel.level,

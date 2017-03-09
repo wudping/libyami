@@ -345,25 +345,56 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
     forEach(markUnusedReference);
     if (!initReference(picture, slice, nalu, newStream))
         return false;
+
+    
+    printf("wdp  %s %s %d, getSize() = %d xxxxx ====\n", __FILE__, __FUNCTION__, __LINE__, getSize());
     if (isIrap(nalu) && picture->m_noRaslOutputFlag && !newStream) {
         bool noOutputOfPriorPicsFlag;
+        
         //TODO how to check C.5.2.2 item 1's second otherwise
-        if (isCra(nalu))
+        if (isCra(nalu)){
+            printf("wdp  %s %s %d xxxxx ====\n", __FILE__, __FUNCTION__, __LINE__);
             noOutputOfPriorPicsFlag = true;
-        else
+        }
+        else{
+            printf("wdp  %s %s %d, slice->no_output_of_prior_pics_flag = %d xxxxx ====\n", __FILE__, __FUNCTION__, __LINE__, slice->no_output_of_prior_pics_flag);
             noOutputOfPriorPicsFlag = slice->no_output_of_prior_pics_flag;
+        }
+        /*
+        noOutputOfPriorPicsFlag = false;
+        if (isCra(nalu) && slice->no_output_of_prior_pics_flag){
+            printf("wdp  %s %s %d xxxxx ====\n", __FILE__, __FUNCTION__, __LINE__);
+            noOutputOfPriorPicsFlag = true;
+        }
+        */
         clearRefSet();
+        //clear
+        if (noOutputOfPriorPicsFlag && m_isNoOutputPriorPics){
+            for(PictureList::iterator it = m_pictures.begin();
+                it != m_pictures.end(); it++){
+                if((*it)->m_poc != m_lastPOCNoOutputPriorPics)
+                    (*it)->m_picOutputFlag = false;
+            }
+        }
+        removeUnused();
+        bumpAll();
+        m_pictures.clear();
+        /*
         if (!noOutputOfPriorPicsFlag) {
             removeUnused();
             bumpAll();
         }
         m_pictures.clear();
+        */
+        
         return true;
     }
+        
     removeUnused();
     const PPS* const pps = slice->pps.get();
     const SPS* const sps = pps->sps.get();
     while (checkReorderPics(sps) || checkLatency(sps) || checkDpbSize(sps)) {
+        printf("wdp  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         if (!bump())
             return false;
     }
@@ -374,6 +405,7 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
 bool VaapiDecoderH265::DPB::output(const PicturePtr& picture)
 {
     picture->m_picOutputFlag = false;
+    printf("wdp  %s %s %d, picture->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc);
 
     return m_output(picture) == YAMI_SUCCESS;
 }
@@ -384,7 +416,9 @@ bool VaapiDecoderH265::DPB::bump()
         find_if(m_pictures.begin(),m_pictures.end(), isOutputNeeded);
     if (it == m_pictures.end())
         return false;
+    printf("wdp  %s %s %d, (*it)->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, (*it)->m_poc);
     bool success = output(*it);
+
     if (!isReference(*it))
         m_pictures.erase(it);
     return success;
@@ -392,6 +426,7 @@ bool VaapiDecoderH265::DPB::bump()
 
 void VaapiDecoderH265::DPB::bumpAll()
 {
+    printf("wdp  %s %s %d xxxxx ====\n", __FILE__, __FUNCTION__, __LINE__);
      while (bump())
         /* nothing */;
 }
@@ -410,9 +445,12 @@ bool VaapiDecoderH265::DPB::add(const PicturePtr& picture, const SliceHeader* co
     forEach(addLatency);
     picture->m_picLatencyCount = 0;
     picture->m_isReference = true;
+    printf("wdp  %s %s %d, before insert, picture->m_poc = %d, picture->m_picOutputFlag = %d, checkReorderPics(sps) = 0x%x, checkLatency(sps) = 0x%x, m_pictures.size() = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc, picture->m_picOutputFlag, checkReorderPics(sps), checkLatency(sps), m_pictures.size());
     m_pictures.insert(picture);
+    printf("wdp  %s %s %d, after insert, picture->m_poc = %d, picture->m_picOutputFlag = %d, checkReorderPics(sps) = 0x%x, checkLatency(sps) = 0x%x, m_pictures.size() = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc, picture->m_picOutputFlag, checkReorderPics(sps), checkLatency(sps), m_pictures.size());
     while (checkReorderPics(sps) || checkLatency(sps))
         bump();
+    
     return true;
 }
 
@@ -482,6 +520,7 @@ YamiStatus VaapiDecoderH265::decodeCurrent()
     YamiStatus status = YAMI_SUCCESS;
     if (!m_current)
         return status;
+    
     if (!m_current->decode()) {
         ERROR("decode %d failed", m_current->m_poc);
         //ignore it
@@ -1031,6 +1070,7 @@ void VaapiDecoderH265::getPoc(const PicturePtr& picture,
     }
     picture->m_poc = picOrderCntMsb + pocLsb;
     picture->m_pocLsb = pocLsb;
+    printf("wdp  %s %s %d, picture->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc);
 
     uint8_t temporalID = nalu->nuh_temporal_id_plus1 - 1;
     //fixme:sub-layer non-reference picture.
@@ -1073,6 +1113,14 @@ PicturePtr VaapiDecoderH265::createPicture(const SliceHeader* const slice,
 
     getPoc(picture, slice, nalu);
 
+    if((isIdr(nalu) || isBla(nalu) || isCra(nalu)) && slice->no_output_of_prior_pics_flag){
+        m_dpb.m_lastPOCNoOutputPriorPics = picture->m_poc;
+        m_dpb.m_isNoOutputPriorPics = true;
+    }
+    else
+    {
+        m_dpb.m_isNoOutputPriorPics = false;
+    }
     return picture;
 }
 
@@ -1096,8 +1144,11 @@ YamiStatus VaapiDecoderH265::decodeSlice(NalUnit* nalu)
         m_current = createPicture(slice, nalu);
         if (m_noRaslOutputFlag && isRasl(nalu))
             return YAMI_SUCCESS;
+        
+        printf("wdp  %s %s %d, m_dpb.getSize() = %d xxxxx ====\n", __FILE__, __FUNCTION__, __LINE__, m_dpb.getSize());
         if (!m_current || !m_dpb.init(m_current, slice, nalu, m_newStream))
             return YAMI_DECODE_INVALID_DATA;
+        printf("wdp  %s %s %d, m_dpb.getSize() = %d xxxxx ====\n", __FILE__, __FUNCTION__, __LINE__, m_dpb.getSize());
         if (!fillPicture(m_current, slice) || !fillIqMatrix(m_current, slice))
             return YAMI_FAIL;
     }
@@ -1158,6 +1209,7 @@ void VaapiDecoderH265::flush(void)
     m_dpb.flush();
     m_prevPicOrderCntMsb = 0;
     m_prevPicOrderCntLsb = 0;
+    
     m_newStream = true;
     m_endOfSequence = false;
     m_prevSlice.reset(new SliceHeader());
@@ -1171,6 +1223,7 @@ YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
         m_dpb.flush();
         m_prevPicOrderCntMsb = 0;
         m_prevPicOrderCntLsb = 0;
+        
         m_newStream = true;
         m_endOfSequence = false;
         m_prevSlice.reset(new SliceHeader());
