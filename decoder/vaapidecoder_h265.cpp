@@ -39,6 +39,8 @@ using std::ref;
 
 using namespace YamiParser::H265;
 
+#define isRap(nalu)  (isIdr(nalu) || isBla(nalu) || isCra(nalu))
+
 bool isIdr(const NalUnit* const nalu)
 {
     return nalu->nal_unit_type == NalUnit::IDR_W_RADL
@@ -345,18 +347,28 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
     forEach(markUnusedReference);
     if (!initReference(picture, slice, nalu, newStream))
         return false;
+    
     if (isIrap(nalu) && picture->m_noRaslOutputFlag && !newStream) {
         bool noOutputOfPriorPicsFlag;
         //TODO how to check C.5.2.2 item 1's second otherwise
-        if (isCra(nalu))
+        if (isCra(nalu)){
             noOutputOfPriorPicsFlag = true;
-        else
-            noOutputOfPriorPicsFlag = slice->no_output_of_prior_pics_flag;
-        clearRefSet();
-        if (!noOutputOfPriorPicsFlag) {
-            removeUnused();
-            bumpAll();
         }
+        else{
+            noOutputOfPriorPicsFlag = slice->no_output_of_prior_pics_flag;
+        }
+
+        clearRefSet();
+        //clear
+        if (noOutputOfPriorPicsFlag){
+            for(PictureList::iterator it = m_pictures.begin();
+                it != m_pictures.end(); it++){
+                if((*it)->m_poc != picture->m_poc)
+                    (*it)->m_picOutputFlag = false;
+            }
+        }
+        removeUnused();
+        bumpAll();
         m_pictures.clear();
         return true;
     }
@@ -364,6 +376,7 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
     const PPS* const pps = slice->pps.get();
     const SPS* const sps = pps->sps.get();
     while (checkReorderPics(sps) || checkLatency(sps) || checkDpbSize(sps)) {
+        printf("wdp  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         if (!bump())
             return false;
     }
@@ -374,6 +387,7 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
 bool VaapiDecoderH265::DPB::output(const PicturePtr& picture)
 {
     picture->m_picOutputFlag = false;
+    printf("wdp  %s %s %d, picture->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc);
 
     return m_output(picture) == YAMI_SUCCESS;
 }
@@ -384,6 +398,7 @@ bool VaapiDecoderH265::DPB::bump()
         find_if(m_pictures.begin(),m_pictures.end(), isOutputNeeded);
     if (it == m_pictures.end())
         return false;
+    printf("wdp  %s %s %d, (*it)->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, (*it)->m_poc);
     bool success = output(*it);
     if (!isReference(*it))
         m_pictures.erase(it);
@@ -392,6 +407,7 @@ bool VaapiDecoderH265::DPB::bump()
 
 void VaapiDecoderH265::DPB::bumpAll()
 {
+    printf("wdp  %s %s %d xxxxx ====\n", __FILE__, __FUNCTION__, __LINE__);
      while (bump())
         /* nothing */;
 }
@@ -410,7 +426,9 @@ bool VaapiDecoderH265::DPB::add(const PicturePtr& picture, const SliceHeader* co
     forEach(addLatency);
     picture->m_picLatencyCount = 0;
     picture->m_isReference = true;
+    printf("wdp  %s %s %d, before insert, picture->m_poc = %d, picture->m_picOutputFlag = %d, checkReorderPics(sps) = 0x%x, checkLatency(sps) = 0x%x, m_pictures.size() = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc, picture->m_picOutputFlag, checkReorderPics(sps), checkLatency(sps), m_pictures.size());
     m_pictures.insert(picture);
+    printf("wdp  %s %s %d, after insert, picture->m_poc = %d, picture->m_picOutputFlag = %d, checkReorderPics(sps) = 0x%x, checkLatency(sps) = 0x%x, m_pictures.size() = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc, picture->m_picOutputFlag, checkReorderPics(sps), checkLatency(sps), m_pictures.size());
     while (checkReorderPics(sps) || checkLatency(sps))
         bump();
     return true;
@@ -1020,6 +1038,7 @@ void VaapiDecoderH265::getPoc(const PicturePtr& picture,
     }
     picture->m_poc = picOrderCntMsb + pocLsb;
     picture->m_pocLsb = pocLsb;
+    printf("wdp  %s %s %d, picture->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc);
 
     uint8_t temporalID = nalu->nuh_temporal_id_plus1 - 1;
     //fixme:sub-layer non-reference picture.
