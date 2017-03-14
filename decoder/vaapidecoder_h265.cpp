@@ -230,6 +230,7 @@ void clearReference(const PicturePtr& picture)
 
 inline bool isOutputNeeded(const PicturePtr& picture)
 {
+    printf("wdp  %s %s %d, picture->m_picOutputFlag = %d, picture->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_picOutputFlag, picture->m_poc);
     return picture->m_picOutputFlag;
 }
 
@@ -337,7 +338,7 @@ bool VaapiDecoderH265::DPB::checkLatency(const SPS* const sps)
 bool VaapiDecoderH265::DPB::checkDpbSize(const SPS* const sps)
 {
     uint8_t highestTid = sps->sps_max_sub_layers_minus1;
-    return m_pictures.size() >= (size_t)(sps->sps_max_dec_pic_buffering_minus1[highestTid] + 1);
+    return m_pictures.size() > (size_t)(sps->sps_max_dec_pic_buffering_minus1[highestTid] + 1);
 }
 
 //C.5.2.2
@@ -377,7 +378,9 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
     removeUnused();
     const PPS* const pps = slice->pps.get();
     const SPS* const sps = pps->sps.get();
-    while (checkReorderPics(sps) || checkLatency(sps) || checkDpbSize(sps)) {
+    //while (checkReorderPics(sps) || checkLatency(sps) || checkDpbSize(sps)) {
+    while (checkReorderPics(sps) || checkDpbSize(sps)) {
+        printf("wdp  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         if (!bump())
             return false;
     }
@@ -388,6 +391,7 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
 bool VaapiDecoderH265::DPB::output(const PicturePtr& picture)
 {
     picture->m_picOutputFlag = false;
+    printf("wdp  %s %s %d, picture->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc);
 
     return m_output(picture) == YAMI_SUCCESS;
 }
@@ -396,11 +400,14 @@ bool VaapiDecoderH265::DPB::bump()
 {
     PictureList::iterator it =
         find_if(m_pictures.begin(),m_pictures.end(), isOutputNeeded);
-    if (it == m_pictures.end())
+    if (it == m_pictures.end()){
+        printf("wdp  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         return false;
+    }
     bool success = output(*it);
     if (!isReference(*it))
         m_pictures.erase(it);
+    printf("wdp  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     return success;
 }
 
@@ -425,8 +432,12 @@ bool VaapiDecoderH265::DPB::add(const PicturePtr& picture, const SliceHeader* co
     picture->m_picLatencyCount = 0;
     picture->m_isReference = true;
     m_pictures.insert(picture);
-    while (checkReorderPics(sps) || checkLatency(sps))
+    //while (checkReorderPics(sps) || checkLatency(sps))
+    while (checkReorderPics(sps) || checkDpbSize(sps)){
+        printf("wdp  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         bump();
+        printf("wdp  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+    }
     return true;
 }
 
@@ -996,7 +1007,7 @@ YamiStatus VaapiDecoderH265::ensureContext(const SPS* const sps)
     uint32_t surfaceWidth = sps->width;
     uint32_t surfaceHeight =sps->height;
     VAProfile profile = getVaProfile(sps);
-    uint32_t fourcc = (profile == VAProfileHEVCMain10) ? YAMI_FOURCC_P010 : YAMI_FOURCC_NV12;
+    uint32_t fourcc = ((profile == VAProfileHEVCMain10) && (sps->bit_depth_luma_minus8 == 2) && (sps->bit_depth_chroma_minus8 == 2)) ? YAMI_FOURCC_P010 : YAMI_FOURCC_NV12;
 
     if (setFormat(width, height, surfaceWidth, surfaceHeight, surfaceNumber, fourcc)) {
         decodeCurrent();
