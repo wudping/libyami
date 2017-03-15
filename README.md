@@ -1,3 +1,7 @@
+[![Stories in Ready](https://badge.waffle.io/01org/libyami.png?label=ready&title=Ready)](http://waffle.io/01org/libyami)
+[![Build Status](https://travis-ci.org/01org/libyami.svg?branch=apache)](https://travis-ci.org/01org/libyami)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/11605/badge.svg)](https://scan.coverity.com/projects/01org-libyami)
+
 libyami
 Yet Another Media Infrastructure.
 It is YUMMY to your video experience on Linux like platform.
