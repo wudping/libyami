@@ -33,6 +33,7 @@ public:
     virtual YamiStatus start(VideoConfigBuffer*);
     virtual YamiStatus reset(VideoConfigBuffer*);
     virtual YamiStatus decode(VideoDecodeBuffer*);
+    YamiStatus ensureContext();
 
 private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderJPEG>;
