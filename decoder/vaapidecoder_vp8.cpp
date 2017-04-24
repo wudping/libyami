@@ -323,8 +323,10 @@ void VaapiDecoderVP8::updateReferencePictures()
             }
         }
     }
-    if ((m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME) || m_frameHdr.refresh_last)
+    if ((m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME) || m_frameHdr.refresh_last){
+        printf("wdp  %s %s %d, m_frameHdr.key_frame = %d, m_frameHdr.refresh_last = 0x%x  ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameHdr.key_frame, m_frameHdr.refresh_last);
         m_lastPicture = picture;
+    }
     if (m_goldenRefPicture)
         DEBUG("m_goldenRefPicture: %p, SurfaceID: %x",
               m_goldenRefPicture.get(), m_goldenRefPicture->getSurfaceID());
