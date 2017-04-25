@@ -47,6 +47,7 @@ public:
     virtual void flush(void) = 0;
     /// continue decoding with new data in @param[in] buffer; send empty data (buffer.data=NULL, buffer.size=0) to indicate EOS
     virtual YamiStatus decode(VideoDecodeBuffer* buffer) = 0;
+    virtual bool isSVCTFrame(VideoDecodeBuffer* buffer, uint32_t layer) = 0;
 
     ///get decoded frame from decoder.
     virtual SharedPtr<VideoFrame> getOutput() = 0;

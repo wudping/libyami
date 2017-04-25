@@ -85,6 +85,9 @@ class VaapiDecoderBase:public IVideoDecoder {
 
     //do not use this, we will remove this in near future
     virtual VADisplay getDisplayID();
+
+    
+    virtual bool isSVCTFrame(VideoDecodeBuffer* buffer, uint32_t layer){ return false;}
   protected:
       YamiStatus setupVA(uint32_t numSurface, VAProfile profile);
       YamiStatus terminateVA(void);

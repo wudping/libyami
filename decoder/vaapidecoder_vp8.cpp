@@ -294,6 +294,7 @@ void VaapiDecoderVP8::updateReferencePictures()
         if (m_frameHdr.refresh_alternate_frame) {
             m_altRefPicture = picture;
         } else {
+            printf("wdp  %s %s %d, m_frameHdr.copy_buffer_to_alternate = %d fffff ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameHdr.copy_buffer_to_alternate);
             switch (m_frameHdr.copy_buffer_to_alternate) {
 	    case Vp8FrameHeader::COPY_LAST_TO_ALT:
                 m_altRefPicture = m_lastPicture;
@@ -309,7 +310,9 @@ void VaapiDecoderVP8::updateReferencePictures()
 
         if (m_frameHdr.refresh_golden_frame) {
             m_goldenRefPicture = picture;
+            printf("wdp  %s %s %d, m_frameHdr.key_frame = %d, m_frameHdr.refresh_last = 0x%x, m_frameHdr.refresh_golden_frame = 0x%x  ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameHdr.key_frame, m_frameHdr.refresh_last, m_frameHdr.refresh_golden_frame);
         } else {
+            printf("wdp  %s %s %d, m_frameHdr.copy_buffer_to_golden = %d fffff ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameHdr.copy_buffer_to_golden);
             switch (m_frameHdr.copy_buffer_to_golden) {
             case 1:
                 m_goldenRefPicture = m_lastPicture;
@@ -327,9 +330,13 @@ void VaapiDecoderVP8::updateReferencePictures()
         printf("wdp  %s %s %d, m_frameHdr.key_frame = %d, m_frameHdr.refresh_last = 0x%x  ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameHdr.key_frame, m_frameHdr.refresh_last);
         m_lastPicture = picture;
     }
-    if (m_goldenRefPicture)
+    if(m_frameHdr.refresh_golden_frame || m_frameHdr.refresh_last || (m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME)){
+        printf("wdp  %s %s %d, m_frameHdr.refresh_golden_frame = %d, m_frameHdr.refresh_last = %d, m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME = %d  ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameHdr.refresh_golden_frame, m_frameHdr.refresh_last, (m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME));
+    }
+    if (m_goldenRefPicture){
         DEBUG("m_goldenRefPicture: %p, SurfaceID: %x",
               m_goldenRefPicture.get(), m_goldenRefPicture->getSurfaceID());
+    }
     if (m_altRefPicture)
         DEBUG("m_altRefPicture: %p, SurfaceID: %x", m_altRefPicture.get(),
               m_altRefPicture->getSurfaceID());
@@ -565,5 +572,27 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
 
     return status;
 }
+
+
+bool VaapiDecoderVP8::isSVCTFrame(VideoDecodeBuffer* buffer, uint32_t layer)
+{
+    Vp8ParserResult result;
+    YamiParser::Vp8FrameHeader frameHdr;
+    if(! buffer->data || ! buffer->size){
+        return false;
+    }
+    result = m_parser.ParseFrame(buffer->data, buffer->size, &frameHdr);
+    if(getStatus(result) != YAMI_SUCCESS){
+        return false;
+    }
+    
+    if ((frameHdr.key_frame == Vp8FrameHeader::KEYFRAME) || frameHdr.refresh_last){
+        printf("wdp  %s %s %d, frameHdr.key_frame = %d, frameHdr.refresh_last = 0x%x  ====\n", __FILE__, __FUNCTION__, __LINE__, frameHdr.key_frame, frameHdr.refresh_last);
+        return true;
+    }
+
+    return false;
+}
+
 
 }

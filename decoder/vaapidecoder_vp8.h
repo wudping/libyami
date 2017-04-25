@@ -72,6 +72,7 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     virtual void stop(void);
     virtual void flush(void);
     virtual YamiStatus decode(VideoDecodeBuffer* buffer);
+    virtual bool isSVCTFrame(VideoDecodeBuffer* buffer, uint32_t layer);
 
   private:
       YamiStatus allocNewPicture();
