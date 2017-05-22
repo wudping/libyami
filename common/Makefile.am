@@ -6,6 +6,7 @@ libyami_common_source_c = \
 	PooledFrameAllocator.cpp \
 	YamiVersion.cpp \
 	Thread.cpp \
+	fraction.cpp \
 	$(NULL)
 
 libyami_common_source_h = \
@@ -23,6 +24,7 @@ libyami_common_source_h_priv = \
 	videopool.h \
 	surfacepool.h \
 	Thread.h \
+	fraction.h \
 	$(NULL)
 
 libyami_common_ldflags = \
