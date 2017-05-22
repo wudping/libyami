@@ -15,6 +15,7 @@ endif
 
 if BUILD_VP8_ENCODER
 libyami_encoder_source_c += vaapiencoder_vp8.cpp
+libyami_encoder_source_c += vaapirefframe_vpx.cpp
 endif
 
 if BUILD_H265_ENCODER
@@ -48,6 +49,7 @@ endif
 
 if BUILD_VP8_ENCODER
 libyami_encoder_source_h_priv += vaapiencoder_vp8.h
+libyami_encoder_source_h_priv += vaapirefframe_vpx.h
 endif
 
 if BUILD_H265_ENCODER
