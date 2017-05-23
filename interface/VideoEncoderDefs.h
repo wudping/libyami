@@ -147,6 +147,16 @@ typedef struct VideoEncSurfaceBuffer {
     struct EncSurfaceBuffer *next;
 }VideoEncSurfaceBuffer;
 
+typedef struct Fraction {
+    uint32_t numerator;
+    uint32_t denominator;
+}Fraction;
+
+typedef struct SVCTVideoFrameRate {
+    Fraction fraction[32];
+    uint8_t num;
+}SVCTVideoFrameRate;
+
 typedef struct VideoFrameRate {
     uint32_t frameRateNum;
     uint32_t frameRateDenom;
@@ -213,6 +223,7 @@ typedef struct VideoParamsCommon {
     uint8_t level;
     VideoResolution resolution;
     VideoFrameRate frameRate;
+    SVCTVideoFrameRate svctFrameRate;
     uint32_t intraPeriod;
     uint32_t ipPeriod;
     uint32_t numRefFrames;

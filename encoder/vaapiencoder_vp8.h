@@ -70,9 +70,11 @@ private:
 
     int m_qIndex;
 
+    int32_t m_temporalLayer; 
+
     typedef std::deque<SurfacePtr> ReferenceQueue;
     //std::deque<SurfacePtr> m_reference;
-    SharedPtr<VaapiRefFrameVpx> m_vpxReference;
+    SharedPtr<VaapiRefFrameVpx> m_vpxRefFrameManager;
 
     /**
      * VaapiEncoderFactory registration result. This encoder is registered in

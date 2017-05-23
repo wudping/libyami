@@ -87,7 +87,11 @@ YamiStatus VaapiEncoderVP8::start()
 {
     FUNC_ENTER();
     resetParams();
-    m_vpxReference.reset(new VaapiRefFrameVp8(intraPeriod()));
+    if(m_videoParamCommon.svctFrameRate.num > 0){
+        m_vpxRefFrameManager.reset(new VaapiRefFrameVp8SVCT(m_videoParamCommon.svctFrameRate, intraPeriod()));
+    }else{
+        m_vpxRefFrameManager.reset(new VaapiRefFrameVp8(intraPeriod()));
+    }
     return VaapiEncoderBase::start();
 }
 
@@ -145,6 +149,8 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
 
     m_frameCount++;
 
+    m_temporalLayer = m_vpxRefFrameManager->getTemporalLayer(m_frameCount % keyFramePeriod());
+
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
 
     CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
@@ -160,6 +166,7 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
     if (ret != YAMI_SUCCESS) {
         return ret;
     }
+    
     output(picture);
     return YAMI_SUCCESS;
 }
@@ -180,7 +187,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
 {
     picParam->reconstructed_frame = surface->getID();
 
-    m_vpxReference->fillRefrenceParam((void *)picParam, picture->m_type);
+    m_vpxRefFrameManager->fillRefrenceParam((void *)picParam, picture->m_type, m_temporalLayer);
 
     picParam->coded_buf = picture->getCodedBufferID();
 
@@ -253,7 +260,7 @@ bool VaapiEncoderVP8::ensureQMatrix (const PicturePtr& picture)
 
 bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfacePtr& recon)
 {
-    return m_vpxReference->referenceListUpdate(pic->m_type, recon);
+    return m_vpxRefFrameManager->referenceListUpdate(pic->m_type, recon, m_temporalLayer);
 }
 
 YamiStatus VaapiEncoderVP8::encodePicture(const PicturePtr& picture)

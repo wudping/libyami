@@ -22,27 +22,27 @@
 
 using namespace std;
 
-class Fraction{
+class CFraction{
 public:
-    Fraction():m_num(0), m_den(1){}
+    CFraction():m_num(0), m_den(1){}
 
-    Fraction(int32_t num, int32_t den);
+    CFraction(int32_t num, int32_t den);
 
-    void operator += (const Fraction& data);
+    void operator += (const CFraction& data);
 
-    Fraction operator + (const Fraction& data) const;
+    CFraction operator + (const CFraction& data) const;
     
-    void operator -= (const Fraction& data);
+    void operator -= (const CFraction& data);
     
-    Fraction operator - (const Fraction& data) const;
+    CFraction operator - (const CFraction& data) const;
 
-    void operator *= (Fraction data);
+    void operator *= (const CFraction& data);
 
-    Fraction operator * (Fraction data) const;
+    CFraction operator * (const CFraction& data) const;
 
-    void operator /= (Fraction data);
+    void operator /= (const CFraction& data);
 
-    Fraction operator / (const Fraction& data) const;
+    CFraction operator / (const CFraction& data) const;
 
     float floatValue()  const;
     int32_t intValue()  const;

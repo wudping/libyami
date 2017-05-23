@@ -18,7 +18,7 @@
 
 using namespace std;
 
-Fraction::Fraction(int32_t num, int32_t den)
+CFraction::CFraction(int32_t num, int32_t den)
 {
     m_den = den;
     m_num = num;
@@ -29,7 +29,7 @@ Fraction::Fraction(int32_t num, int32_t den)
     }
 }
 
-void Fraction::operator += (const Fraction& data)
+void CFraction::operator += (const CFraction& data)
 {
     if(!m_den || !data.getDenominator()){
         cout << "Data illegal: " << m_den << ", or " << data.getDenominator() << endl;
@@ -48,26 +48,26 @@ void Fraction::operator += (const Fraction& data)
     m_den = den/gcd;
 }
 
-Fraction Fraction::operator + (const Fraction& data) const
+CFraction CFraction::operator + (const CFraction& data) const
 {
-    Fraction sum(m_num, m_den);
+    CFraction sum(m_num, m_den);
     sum += data;
     return sum;
 }
 
-void Fraction::operator -= (const Fraction& data)
+void CFraction::operator -= (const CFraction& data)
 { 
-    operator+=(data * (Fraction(-1, 1)));
+    operator+=(data * (CFraction(-1, 1)));
 }
 
-Fraction Fraction::operator - (const Fraction& data) const
+CFraction CFraction::operator - (const CFraction& data) const
 { 
-    Fraction sum(m_num, m_den);
+    CFraction sum(m_num, m_den);
     sum -= data;
     return sum;
 }
 
-void Fraction::operator *= (Fraction data)
+void CFraction::operator *= (const CFraction& data)
 {
     if(!m_den || !data.getDenominator()){
         cout << "Data illegal: " << m_den << ", or " << data.getDenominator() << endl;
@@ -86,34 +86,34 @@ void Fraction::operator *= (Fraction data)
     m_den = den/gcd;
 }
 
-Fraction Fraction::operator * (Fraction data) const
+CFraction CFraction::operator * (const CFraction& data) const
 {
-    Fraction result(m_num, m_den);
+    CFraction result(m_num, m_den);
     result *= data;
     return result;
 }
 
-void Fraction::operator /= (Fraction data)
+void CFraction::operator /= (const CFraction& data)
 {
     if(!data.getNumerator()){
         cout << "Data illegal: divisor is zero. "<< endl;
         m_den = 0;
     }
-    operator*=(Fraction(data.getDenominator(), data.getNumerator()));
+    operator*=(CFraction(data.getDenominator(), data.getNumerator()));
 }
 
-Fraction Fraction::operator / (const Fraction& data) const
+CFraction CFraction::operator / (const CFraction& data) const
 {
     if(!data.getNumerator()){
         cout << "Data illegal: divisor is zero. " << endl;
-        return Fraction(0, 0);
+        return CFraction(0, 0);
     }
-    Fraction result(m_num, m_den);
-    result *= Fraction(data.getDenominator(), data.getNumerator());
+    CFraction result(m_num, m_den);
+    result *= CFraction(data.getDenominator(), data.getNumerator());
     return result;
 }
 
-float Fraction::floatValue()  const
+float CFraction::floatValue()  const
 {
     if(getDenominator())
         return 1.0 * m_num / m_den;
@@ -121,7 +121,7 @@ float Fraction::floatValue()  const
         return 0.0;
 }
 
-int32_t Fraction::intValue()  const
+int32_t CFraction::intValue()  const
 {
     if(getDenominator())
         return m_num / m_den;

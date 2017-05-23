@@ -33,9 +33,8 @@
 namespace YamiMediaCodec{
 
 
-bool VaapiRefFrameVp8::referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon)
+bool VaapiRefFrameVp8::referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon, uint8_t temporalLayer)
 {
-
     if (pictureType == VAAPI_PICTURE_I) {
         setAltFrame(recon);
         setGoldenFrame(recon);
@@ -48,7 +47,7 @@ bool VaapiRefFrameVp8::referenceListUpdate (VaapiPictureType pictureType, const 
     return TRUE;
 }
 
-bool VaapiRefFrameVp8::fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const
+bool VaapiRefFrameVp8::fillRefrenceParam(void* picParam, VaapiPictureType pictureType, uint8_t temporalLayer) const
 {
     VAEncPictureParameterBufferVP8 *vp8PicParam = static_cast<VAEncPictureParameterBufferVP8*>(picParam);
     if (pictureType == VAAPI_PICTURE_P) {
@@ -70,26 +69,25 @@ bool VaapiRefFrameVp8::fillRefrenceParam(void* picParam, VaapiPictureType pictur
     return TRUE;
 }
 
-VaapiRefFrameVp8SVCT::VaapiRefFrameVp8SVCT(LayerFrameRates framerates, uint32_t gop):VaapiRefFrameVpx(framerates.num, gop)
+VaapiRefFrameVp8SVCT::VaapiRefFrameVp8SVCT(const SVCTVideoFrameRate& framerates, uint32_t gop):VaapiRefFrameVpx(framerates.num, gop)
 {
-    if((NULL == framerates.framerates) || (0 == framerates.num)){
+    if(framerates.num <= 0){
         return ;
     }
     for(uint32_t i = 0; i < framerates.num; i++){
-        Fraction framerate(framerates.framerates[i].numerator, framerates.framerates[i].denominator);
+        CFraction framerate(framerates.fraction[i].numerator, framerates.fraction[i].denominator);
         m_framerates.push_back(framerate);
         framerate.print();
         m_framerateSum += framerate;
     }
 }
 
-uint8_t VaapiRefFrameVp8SVCT::getFrameLayer(uint32_t frameNum)
+uint8_t VaapiRefFrameVp8SVCT::getTemporalLayer(uint32_t frameNum)
 {   
-    Fraction sumLayerFramerate(0, 1);
-    Fraction ratioLayerFramerate(0, 1);
+    CFraction sumLayerFramerate(0, 1);
+    CFraction ratioLayerFramerate(0, 1);
 
     if(1.0 * m_gopSize < m_framerateSum.floatValue()){
-        //printf("wdp  %s %s %d, frameNum = %d ====\n", __FILE__, __FUNCTION__, __LINE__, frameNum);
         return 0;
     }
 
@@ -99,9 +97,7 @@ uint8_t VaapiRefFrameVp8SVCT::getFrameLayer(uint32_t frameNum)
         sumLayerFramerate += m_framerates[i];
         ratioLayerFramerate = m_framerateSum / sumLayerFramerate;
         
-        //printf("wdp  %s %s %d, layer i = %d,  %d model %d = %d ====\n", __FILE__, __FUNCTION__, __LINE__, i, frameNum, ratioLayerFramerate.intValue(), frameNum % (ratioLayerFramerate.intValue()));
         if(!(frameNum % (ratioLayerFramerate.intValue()))){
-            //printf("wdp  %s %s %d, i = %d, frameNum = %d ====\n", __FILE__, __FUNCTION__, __LINE__, i, frameNum);
             return i;
         }
     }
@@ -109,5 +105,75 @@ uint8_t VaapiRefFrameVp8SVCT::getFrameLayer(uint32_t frameNum)
     //printf("wdp  %s %s %d, frameNum = %d ====\n", __FILE__, __FUNCTION__, __LINE__, frameNum);
     return 0;
 }
+
+bool VaapiRefFrameVp8SVCT::fillRefrenceParam(void* picParam, VaapiPictureType pictureType, uint8_t temporalLayer) const
+{
+    VAEncPictureParameterBufferVP8 *vp8PicParam = static_cast<VAEncPictureParameterBufferVP8*>(picParam);
+
+    vp8PicParam->ref_last_frame = VA_INVALID_SURFACE;
+    vp8PicParam->ref_gf_frame = VA_INVALID_SURFACE;
+    vp8PicParam->ref_arf_frame = VA_INVALID_SURFACE;
+    vp8PicParam->pic_flags.bits.refresh_last = 0;
+    vp8PicParam->pic_flags.bits.refresh_golden_frame = 0;
+    vp8PicParam->pic_flags.bits.refresh_alternate_frame = 0;
+
+    if (pictureType == VAAPI_PICTURE_P) {
+        switch (temporalLayer) {
+        case 2:
+            if(m_altFrame)
+                vp8PicParam->ref_arf_frame = m_altFrame->getID();
+            if(m_goldenFrame)
+                vp8PicParam->ref_gf_frame = m_goldenFrame->getID();
+            if(m_lastFrame)
+                vp8PicParam->ref_last_frame = m_lastFrame->getID();
+            vp8PicParam->pic_flags.bits.refresh_alternate_frame = 1;
+            break;
+        case 1:
+            if(m_goldenFrame)
+                vp8PicParam->ref_gf_frame = m_goldenFrame->getID();
+            if(m_lastFrame)
+                vp8PicParam->ref_last_frame = m_lastFrame->getID();
+            vp8PicParam->pic_flags.bits.refresh_golden_frame = 1;
+            break;
+        case 0:
+            if(m_lastFrame)
+                vp8PicParam->ref_last_frame = m_lastFrame->getID();
+            vp8PicParam->pic_flags.bits.refresh_last = 1;
+            break;
+        default:
+            break;
+        }
+    }else{
+        vp8PicParam->pic_flags.bits.refresh_last = 1;
+    }
+
+    return TRUE;
+}
+
+bool VaapiRefFrameVp8SVCT::referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon, uint8_t temporalLayer)
+{
+    if (pictureType == VAAPI_PICTURE_I) {
+        setLastFrame(recon);
+        m_goldenFrame.reset();
+        m_altFrame.reset();
+    } else {
+        switch (temporalLayer) {
+        case 2:
+            setAltFrame(recon);
+            break;
+        case 1:
+            setGoldenFrame(recon);
+            break;
+        case 0:
+            setLastFrame(recon);
+            break;
+        default:
+            break;
+        }
+    }
+
+    return TRUE;
+}
+
 
 }

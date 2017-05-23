@@ -33,12 +33,7 @@ typedef struct {
     uint32_t denominator;
 } FrameRate;
 
-typedef struct {
-    FrameRate *framerates;
-    uint32_t num;
-} LayerFrameRates;
-
-typedef std::vector<Fraction> FractionVector;
+typedef std::vector<CFraction> FractionVector;
 
 class VaapiRefFrameVpx {
 public:
@@ -46,10 +41,13 @@ public:
 
     VaapiRefFrameVpx():m_layerNum(1), m_gopSize(30){}
     VaapiRefFrameVpx(uint32_t layerNum, uint32_t gop):m_layerNum(layerNum), m_gopSize(gop){}
-    virtual uint8_t getFrameLayer(uint32_t frameNum) { return 0; }
+
+    virtual uint8_t getTemporalLayer(uint32_t frameNum) { return 0; }
     virtual uint8_t getLayerNum() { return m_layerNum; }
-    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const = 0;
-    virtual bool referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon) = 0;
+
+    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType, uint8_t temporalLayer = 0) const = 0;
+    virtual bool referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon, uint8_t temporalLayer = 0) = 0;
+
     void setLastFrame(const SurfacePtr& frame) { m_lastFrame = frame;}
     void setGoldenFrame(const SurfacePtr& frame) { m_goldenFrame = frame;}
     void setAltFrame(const SurfacePtr& frame) { m_altFrame = frame;}
@@ -74,18 +72,18 @@ class VaapiRefFrameVp8 : public VaapiRefFrameVpx{
 public:
     VaapiRefFrameVp8(){}
     VaapiRefFrameVp8(uint32_t gop): VaapiRefFrameVpx(1, gop){}
-    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const ;
-    virtual bool referenceListUpdate(VaapiPictureType pictureType, const SurfacePtr& recon);
-
+    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType, uint8_t temporalLayer = 0) const ;
+    virtual bool referenceListUpdate(VaapiPictureType pictureType, const SurfacePtr& recon, uint8_t temporalLayer = 0);
 };
 
 class VaapiRefFrameVp8SVCT : public VaapiRefFrameVpx{
 public:
     VaapiRefFrameVp8SVCT(){}
-    VaapiRefFrameVp8SVCT(LayerFrameRates framerates, uint32_t gop);
-    virtual uint8_t getFrameLayer(uint32_t frameNum);
-    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const {return TRUE;}
-    virtual bool referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon) {return TRUE;}
+    VaapiRefFrameVp8SVCT(const SVCTVideoFrameRate& framerates, uint32_t gop);
+    virtual uint8_t getTemporalLayer(uint32_t frameNum);
+ 
+    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType, uint8_t temporalLayer = 0) const;
+    virtual bool referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon, uint8_t temporalLayer = 0);
 
 protected:
 
@@ -93,7 +91,7 @@ private:
 
 private:
     FractionVector m_framerates;
-    Fraction m_framerateSum;
+    CFraction m_framerateSum;
 };
 
 
