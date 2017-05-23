@@ -22,6 +22,7 @@
 #include "vaapiencoder_base.h"
 #include "vaapi/vaapiptrs.h"
 #include "common/fraction.h"
+#include "common/common_def.h"
 #include <va/va_enc_vp8.h>
 
 
@@ -42,7 +43,8 @@ typedef std::vector<Fraction> FractionVector;
 class VaapiRefFrameVpx {
 public:
     typedef SharedPtr<VaapiEncPicture> PicturePtr;
-    
+
+    VaapiRefFrameVpx():m_layerNum(1), m_gopSize(30){}
     VaapiRefFrameVpx(uint32_t layerNum, uint32_t gop):m_layerNum(layerNum), m_gopSize(gop){}
     virtual uint8_t getFrameLayer(uint32_t frameNum) { return 0; }
     virtual uint8_t getLayerNum() { return m_layerNum; }
@@ -70,6 +72,7 @@ private:
 
 class VaapiRefFrameVp8 : public VaapiRefFrameVpx{
 public:
+    VaapiRefFrameVp8(){}
     VaapiRefFrameVp8(uint32_t gop): VaapiRefFrameVpx(1, gop){}
     virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const ;
     virtual bool referenceListUpdate(VaapiPictureType pictureType, const SurfacePtr& recon);
@@ -78,6 +81,7 @@ public:
 
 class VaapiRefFrameVp8SVCT : public VaapiRefFrameVpx{
 public:
+    VaapiRefFrameVp8SVCT(){}
     VaapiRefFrameVp8SVCT(LayerFrameRates framerates, uint32_t gop);
     virtual uint8_t getFrameLayer(uint32_t frameNum);
     virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const {return TRUE;}

@@ -21,7 +21,6 @@
 #if (1)
 #include "vaapiencoder_vp8.h"
 #include "common/scopedlogger.h"
-#include "common/common_def.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
@@ -70,11 +69,6 @@ bool VaapiRefFrameVp8::fillRefrenceParam(void* picParam, VaapiPictureType pictur
 
     return TRUE;
 }
-
-
-
-
-
 
 VaapiRefFrameVp8SVCT::VaapiRefFrameVp8SVCT(LayerFrameRates framerates, uint32_t gop):VaapiRefFrameVpx(framerates.num, gop)
 {
