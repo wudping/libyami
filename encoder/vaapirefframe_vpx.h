@@ -17,14 +17,12 @@
 #ifndef vaapirefframe_vpx_h
 #define vaapirefframe_vpx_h
 
-#if (0)
+#include <deque>
+#include <vector>
 #include "vaapiencoder_base.h"
 #include "vaapi/vaapiptrs.h"
+#include "common/fraction.h"
 #include <va/va_enc_vp8.h>
-#include <deque>
-#endif
-#include <vector>
-#include "fraction.h"
 
 
 namespace YamiMediaCodec{
@@ -43,25 +41,47 @@ typedef std::vector<Fraction> FractionVector;
 
 class VaapiRefFrameVpx {
 public:
+    typedef SharedPtr<VaapiEncPicture> PicturePtr;
+    
     VaapiRefFrameVpx(uint32_t layerNum, uint32_t gop):m_layerNum(layerNum), m_gopSize(gop){}
     virtual uint8_t getFrameLayer(uint32_t frameNum) { return 0; }
     virtual uint8_t getLayerNum() { return m_layerNum; }
+    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const = 0;
+    virtual bool referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon) = 0;
+    void setLastFrame(const SurfacePtr& frame) { m_lastFrame = frame;}
+    void setGoldenFrame(const SurfacePtr& frame) { m_goldenFrame = frame;}
+    void setAltFrame(const SurfacePtr& frame) { m_altFrame = frame;}
+    SurfacePtr getLastFrame() { return m_lastFrame;}
+    SurfacePtr getGoldenFrame() { return m_goldenFrame;}
+    SurfacePtr getAltFrame() { return m_altFrame;}
 
 protected:
 
 protected:
     uint32_t m_layerNum;
     uint32_t m_gopSize;
+    SurfacePtr m_lastFrame;
+    SurfacePtr m_goldenFrame;
+    SurfacePtr m_altFrame;
 
 private:
-
 };
 
+
+class VaapiRefFrameVp8 : public VaapiRefFrameVpx{
+public:
+    VaapiRefFrameVp8(uint32_t gop): VaapiRefFrameVpx(1, gop){}
+    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const ;
+    virtual bool referenceListUpdate(VaapiPictureType pictureType, const SurfacePtr& recon);
+
+};
 
 class VaapiRefFrameVp8SVCT : public VaapiRefFrameVpx{
 public:
     VaapiRefFrameVp8SVCT(LayerFrameRates framerates, uint32_t gop);
     virtual uint8_t getFrameLayer(uint32_t frameNum);
+    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const {return TRUE;}
+    virtual bool referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon) {return TRUE;}
 
 protected:
 

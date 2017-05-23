@@ -18,7 +18,7 @@
 #include "config.h"
 #endif
 
-#if (0)
+#if (1)
 #include "vaapiencoder_vp8.h"
 #include "common/scopedlogger.h"
 #include "common/common_def.h"
@@ -26,12 +26,56 @@
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
+#include "vaapirefframe_vpx.h"
 #endif
 
 #include <stdio.h>
-#include "vaapirefframe_vpx.h"
 
 namespace YamiMediaCodec{
+
+
+bool VaapiRefFrameVp8::referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon)
+{
+
+    if (pictureType == VAAPI_PICTURE_I) {
+        setAltFrame(recon);
+        setGoldenFrame(recon);
+    } else {
+        setAltFrame(getGoldenFrame());
+        setGoldenFrame(getLastFrame());
+    }
+    setLastFrame(recon);
+
+    return TRUE;
+}
+
+bool VaapiRefFrameVp8::fillRefrenceParam(void* picParam, VaapiPictureType pictureType) const
+{
+    VAEncPictureParameterBufferVP8 *vp8PicParam = static_cast<VAEncPictureParameterBufferVP8*>(picParam);
+    if (pictureType == VAAPI_PICTURE_P) {
+        vp8PicParam->pic_flags.bits.frame_type = 1;
+        vp8PicParam->ref_arf_frame = m_altFrame->getID();
+        vp8PicParam->ref_gf_frame = m_goldenFrame->getID();
+        vp8PicParam->ref_last_frame = m_lastFrame->getID();
+        vp8PicParam->pic_flags.bits.refresh_last = 1;
+        vp8PicParam->pic_flags.bits.refresh_golden_frame = 0;
+        vp8PicParam->pic_flags.bits.copy_buffer_to_golden = 1;
+        vp8PicParam->pic_flags.bits.refresh_alternate_frame = 0;
+        vp8PicParam->pic_flags.bits.copy_buffer_to_alternate = 2;
+    } else {
+        vp8PicParam->ref_last_frame = VA_INVALID_SURFACE;
+        vp8PicParam->ref_gf_frame = VA_INVALID_SURFACE;
+        vp8PicParam->ref_arf_frame = VA_INVALID_SURFACE;
+    }
+
+    return TRUE;
+}
+
+
+
+
+
+
 VaapiRefFrameVp8SVCT::VaapiRefFrameVp8SVCT(LayerFrameRates framerates, uint32_t gop):VaapiRefFrameVpx(framerates.num, gop)
 {
     if((NULL == framerates.framerates) || (0 == framerates.num)){
