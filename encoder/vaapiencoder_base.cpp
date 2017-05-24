@@ -467,6 +467,7 @@ void VaapiEncoderBase::fill(VAEncMiscParameterFrameRate* frameRate) const
     frameRate->framerate = fps();
 }
 
+
 /* Generates additional control parameters */
 bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 {

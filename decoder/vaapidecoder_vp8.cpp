@@ -569,6 +569,7 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
 
 bool VaapiDecoderVP8::targetTemporalFrame()
 {
+    printf("wdp  %s %s %d, refresh_last = %d, refresh_golden_frame = %d, m_frameHdr.key_frame = %d, Vp8FrameHeader::KEYFRAME = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameHdr.refresh_last, m_frameHdr.refresh_golden_frame, m_frameHdr.key_frame, Vp8FrameHeader::KEYFRAME);
     switch (m_configBuffer.temporalLayer) {
     case 0: //decode all layers.
         return true;

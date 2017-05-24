@@ -118,17 +118,23 @@ bool VaapiRefFrameVp8SVCT::fillRefrenceParam(void* picParam, VaapiPictureType pi
     vp8PicParam->pic_flags.bits.refresh_alternate_frame = 0;
 
     if (pictureType == VAAPI_PICTURE_P) {
+        vp8PicParam->pic_flags.bits.frame_type = 1;
         switch (temporalLayer) {
         case 2:
-            if(m_altFrame)
+            if(m_altFrame){
                 vp8PicParam->ref_arf_frame = m_altFrame->getID();
-            if(m_goldenFrame)
+            }
+            if(m_goldenFrame){
                 vp8PicParam->ref_gf_frame = m_goldenFrame->getID();
-            if(m_lastFrame)
+            }
+            if(m_lastFrame){
                 vp8PicParam->ref_last_frame = m_lastFrame->getID();
+            }
             vp8PicParam->pic_flags.bits.refresh_alternate_frame = 1;
             break;
         case 1:
+            if(m_altFrame)
+                vp8PicParam->ref_arf_frame = m_altFrame->getID();
             if(m_goldenFrame)
                 vp8PicParam->ref_gf_frame = m_goldenFrame->getID();
             if(m_lastFrame)
@@ -136,6 +142,10 @@ bool VaapiRefFrameVp8SVCT::fillRefrenceParam(void* picParam, VaapiPictureType pi
             vp8PicParam->pic_flags.bits.refresh_golden_frame = 1;
             break;
         case 0:
+            if(m_altFrame)
+                vp8PicParam->ref_arf_frame = m_altFrame->getID();
+            if(m_goldenFrame)
+                vp8PicParam->ref_gf_frame = m_goldenFrame->getID();
             if(m_lastFrame)
                 vp8PicParam->ref_last_frame = m_lastFrame->getID();
             vp8PicParam->pic_flags.bits.refresh_last = 1;
@@ -146,6 +156,13 @@ bool VaapiRefFrameVp8SVCT::fillRefrenceParam(void* picParam, VaapiPictureType pi
     }else{
         vp8PicParam->pic_flags.bits.refresh_last = 1;
     }
+    
+    printf("wdp  %s %s %d, refresh_last = %d, refresh_golden_frame = %d, refresh_alternate_frame = %d, temporalLayer = %d, pictureType = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__
+        , vp8PicParam->pic_flags.bits.refresh_last
+        , vp8PicParam->pic_flags.bits.refresh_golden_frame
+        , vp8PicParam->pic_flags.bits.refresh_alternate_frame
+        , temporalLayer
+        , pictureType);
 
     return TRUE;
 }
@@ -153,19 +170,19 @@ bool VaapiRefFrameVp8SVCT::fillRefrenceParam(void* picParam, VaapiPictureType pi
 bool VaapiRefFrameVp8SVCT::referenceListUpdate (VaapiPictureType pictureType, const SurfacePtr& recon, uint8_t temporalLayer)
 {
     if (pictureType == VAAPI_PICTURE_I) {
-        setLastFrame(recon);
-        m_goldenFrame.reset();
-        m_altFrame.reset();
+        m_lastFrame = recon;
+        m_goldenFrame = recon;
+        m_altFrame = recon;
     } else {
         switch (temporalLayer) {
         case 2:
-            setAltFrame(recon);
+            m_altFrame = recon;
             break;
         case 1:
-            setGoldenFrame(recon);
+            m_goldenFrame = recon;
             break;
         case 0:
-            setLastFrame(recon);
+            m_lastFrame = recon;
             break;
         default:
             break;

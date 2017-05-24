@@ -147,9 +147,10 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
     else
         picture->m_type = VAAPI_PICTURE_P;
 
-    m_frameCount++;
-
     m_temporalLayer = m_vpxRefFrameManager->getTemporalLayer(m_frameCount % keyFramePeriod());
+    printf("wdp  %s %s %d, m_temporalLayer = %d, m_frameCount = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_temporalLayer, m_frameCount);
+
+    m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
 
@@ -261,6 +262,182 @@ bool VaapiEncoderVP8::ensureQMatrix (const PicturePtr& picture)
 bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfacePtr& recon)
 {
     return m_vpxRefFrameManager->referenceListUpdate(pic->m_type, recon, m_temporalLayer);
+}
+
+
+#if (0)
+
+
+/* Generates additional control parameters */
+bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
+{
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+        return false;
+    if (hrd)
+        fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+
+    VideoRateControl mode = rateControlMode();
+    if (mode == RATE_CONTROL_CBR ||
+            mode == RATE_CONTROL_VBR) {
+        VAEncMiscParameterRateControl* rateControl = NULL;
+        if (!picture->newMisc(VAEncMiscParameterTypeRateControl, rateControl))
+            return false;
+        if (rateControl)
+            fill(rateControl);
+
+        VAEncMiscParameterFrameRate* frameRate = NULL;
+        if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
+            return false;
+        if (frameRate)
+            fill(frameRate);
+    }
+    return true;
+}
+
+/* Generates additional control parameters */
+bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
+{
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+        return false;
+    if (hrd)
+        VaapiEncoderBase::fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+
+    VideoRateControl mode = rateControlMode();
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
+#if VA_CHECK_VERSION(0, 39, 4)
+        if (m_isSvcT) {
+            VAEncMiscParameterTemporalLayerStructure* layerParam = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeTemporalLayerStructure,
+                                  layerParam))
+                return false;
+            if (layerParam)
+                fill(layerParam);
+        }
+#endif
+        for (uint32_t i = 0; i < m_temporalLayerNum; i++) {
+            VAEncMiscParameterRateControl* rateControl = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeRateControl,
+                                  rateControl))
+                return false;
+            if (rateControl)
+                fill(rateControl, i);
+
+            VAEncMiscParameterFrameRate* frameRate = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
+                return false;
+            if (frameRate)
+                fill(frameRate, i);
+        }
+    }
+    return true;
+}
+#endif
+
+const static int32_t temporalLayerNum = 3;
+
+void VaapiEncoderVP8::fill(
+    VAEncMiscParameterTemporalLayerStructure* layerParam) const
+{
+    //layerParam->number_of_layers = m_temporalLayerNum;
+    //layerParam->periodicity = H264_MIN_TEMPORAL_GOP;
+    layerParam->number_of_layers = temporalLayerNum;
+    layerParam->periodicity = 8;
+            
+    static uint32_t VP8TempIds[4][8]
+        = { { 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 0, 1, 0, 1, 0, 1, 0, 1 },
+            { 0, 2, 1, 2, 0, 2, 1, 2 },
+            { 0, 3, 2, 3, 1, 3, 2, 3 } };
+
+    for (uint32_t i = 0; i < layerParam->periodicity; i++)
+        layerParam->layer_id[i] = VP8TempIds[temporalLayerNum - 1][i % 8];
+}
+
+void VaapiEncoderVP8::fill(VAEncMiscParameterRateControl* rateControl,
+                            uint32_t temporalId) const
+{
+#if (0)
+    VaapiEncoderBase::fill(rateControl);
+
+    rateControl->bits_per_second
+        = m_videoParamCommon.rcParams.layerBitRate[temporalId];
+#if VA_CHECK_VERSION(0, 39, 4)
+    rateControl->rc_flags.bits.temporal_id = temporalId;
+#endif
+#endif
+    uint32_t layerBitRate[3] = {2500, 2500, 5000};
+
+    VaapiEncoderBase::fill(rateControl);
+
+    rateControl->bits_per_second
+        = layerBitRate[temporalId];
+    rateControl->rc_flags.bits.temporal_id = temporalId;
+}
+
+void VaapiEncoderVP8::fill(VAEncMiscParameterFrameRate* frameRate,
+                            uint32_t temporalId) const
+{
+    uint32_t expTemId = (1 << (3 - 1 - temporalId));
+    
+    printf("wdp  %s %s %d, fps() = %d, expTemId = %d ====\n", __FILE__, __FUNCTION__, __LINE__, fps(), expTemId);
+
+    if (fps() % expTemId == 0)
+        frameRate->framerate = fps() / expTemId;
+    else
+        frameRate->framerate = (expTemId << 16 | fps());
+
+    frameRate->framerate_flags.bits.temporal_id = temporalId;
+}
+
+
+/* Generates additional control parameters */
+bool VaapiEncoderVP8::ensureMiscParams(VaapiEncPicture* picture)
+{
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+        return false;
+    if (hrd)
+        VaapiEncoderBase::fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+#if (1)
+    VideoRateControl mode = rateControlMode();
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
+        printf("wdp  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+        if (true) {
+            VAEncMiscParameterTemporalLayerStructure* layerParam = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeTemporalLayerStructure,
+                                  layerParam))
+                return false;
+            if (layerParam)
+                fill(layerParam);
+        }
+        for (uint32_t i = 0; i < temporalLayerNum; i++) {
+            VAEncMiscParameterRateControl* rateControl = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeRateControl,
+                                  rateControl))
+                return false;
+            if (rateControl)
+                fill(rateControl, i);
+
+            VAEncMiscParameterFrameRate* frameRate = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
+                return false;
+            if (frameRate)
+                fill(frameRate, i);
+        }
+    }
+#endif
+    return true;
 }
 
 YamiStatus VaapiEncoderVP8::encodePicture(const PicturePtr& picture)

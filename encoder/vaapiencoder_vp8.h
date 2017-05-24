@@ -46,6 +46,7 @@ public:
 
 protected:
     virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
+    virtual bool ensureMiscParams(VaapiEncPicture*);
 
 private:
     friend class FactoryTest<IVideoEncoder, VaapiEncoderVP8>;
@@ -55,6 +56,9 @@ private:
     bool fill(VAEncSequenceParameterBufferVP8*) const;
     bool fill(VAEncPictureParameterBufferVP8*, const PicturePtr&, const SurfacePtr&) const ;
     bool fill(VAQMatrixBufferVP8* qMatrix) const;
+    void fill(VAEncMiscParameterTemporalLayerStructure*) const;
+    void fill(VAEncMiscParameterRateControl*, uint32_t temporalId) const;
+    void fill(VAEncMiscParameterFrameRate*, uint32_t temporalId) const;
     bool ensureSequence(const PicturePtr&);
     bool ensurePicture (const PicturePtr&, const SurfacePtr&);
     bool ensureQMatrix (const PicturePtr&);
