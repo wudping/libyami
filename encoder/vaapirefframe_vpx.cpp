@@ -76,7 +76,7 @@ bool VaapiRefFrameVp8::fillRefrenceParam(void* picParam, VaapiPictureType pictur
 VaapiRefFrameSVCT::VaapiRefFrameSVCT(const SVCTVideoFrameRate& framerates, const uint32_t* layerBitrate, uint32_t gop)
     : VaapiRefFrameVpx(framerates.num, gop)
 {
-    if (framerates.num <= 0) {
+    if (framerates.num <= 0 || framerates.num > MAX_TEMPORAL_LAYER_NUM) {
         return;
     }
     uint32_t gcd;
@@ -284,11 +284,11 @@ void VaapiRefFrameSVCT::printLayerIDs()
 {
     printf("LayerIDs: \n");
     for (uint8_t i = 0; i < m_periodicity; i++) {
-        printf("%d  ", i);
+        printf("%2d ", i);
     }
     printf("\n");
     for (uint8_t i = 0; i < m_periodicity; i++) {
-        printf("%d  ", m_tempLayerIDs[i]);
+        printf("%2d ", m_tempLayerIDs[i]);
     }
     printf("\n");
 
