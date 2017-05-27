@@ -149,6 +149,7 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
         picture->m_type = VAAPI_PICTURE_P;
 
     m_temporalLayer = m_vpxRefFrameManager->getTemporalLayer(m_frameCount % keyFramePeriod());
+    picture->m_temporalLayer = m_temporalLayer;
     m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
@@ -190,7 +191,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
     m_vpxRefFrameManager->fillRefrenceParam((void*)picParam, picture->m_type, m_temporalLayer);
 
     picParam->coded_buf = picture->getCodedBufferID();
-    picParam->ref_flags.bits.temporal_id = m_temporalLayer;
+    picParam->ref_flags.bits.temporal_id = picture->m_temporalLayer;
 
     picParam->pic_flags.bits.show_frame = 1;
     /*TODO: multi partition*/

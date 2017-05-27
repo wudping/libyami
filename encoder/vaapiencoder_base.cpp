@@ -644,6 +644,7 @@ YamiStatus VaapiEncoderBase::getOutput(VideoEncOutputBuffer* outBuffer, bool wit
         return ret;
 
     outBuffer->timeStamp = picture->m_timeStamp;
+    outBuffer->temporalLayer = picture->m_temporalLayer;
     checkCodecData(outBuffer);
     return YAMI_SUCCESS;
 }
@@ -672,6 +673,7 @@ YamiStatus VaapiEncoderBase::getOutput(VideoEncOutputBuffer* outBuffer, VideoEnc
     if (data)
         memcpy(MVBuffer->data, data, mappedSize);
     outBuffer->timeStamp = picture->m_timeStamp;
+    outBuffer->temporalLayer = picture->m_temporalLayer;
     checkCodecData(outBuffer);
     return YAMI_SUCCESS;
 }
