@@ -80,4 +80,5 @@ bool VaapiRefFrameVp8::fillRefrenceParam(void* picParam, VaapiPictureType pictur
 
     return TRUE;
 }
+
 }

@@ -87,6 +87,7 @@ YamiStatus VaapiEncoderVP8::start()
 {
     FUNC_ENTER();
     resetParams();
+    m_vpxRefFrameManager.reset(new VaapiRefFrameVp8(intraPeriod()));
     return VaapiEncoderBase::start();
 }
 
@@ -94,7 +95,6 @@ void VaapiEncoderVP8::flush()
 {
     FUNC_ENTER();
     m_frameCount = 0;
-    m_reference.clear();
     VaapiEncoderBase::flush();
 }
 
@@ -142,6 +142,7 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
     else
         picture->m_type = VAAPI_PICTURE_P;
 
+    m_temporalLayer = m_vpxRefFrameManager->getTemporalLayer(m_frameCount % keyFramePeriod());
     m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
@@ -178,22 +179,8 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
                            const SurfacePtr& surface) const
 {
     picParam->reconstructed_frame = surface->getID();
-    if (picture->m_type == VAAPI_PICTURE_P) {
-        picParam->pic_flags.bits.frame_type = 1;
-        ReferenceQueue::const_iterator it = m_reference.begin();
-        picParam->ref_arf_frame = (*it++)->getID();
-        picParam->ref_gf_frame = (*it++)->getID();
-        picParam->ref_last_frame = (*it)->getID();
-        picParam->pic_flags.bits.refresh_last = 1;
-        picParam->pic_flags.bits.refresh_golden_frame = 0;
-        picParam->pic_flags.bits.copy_buffer_to_golden = 1;
-        picParam->pic_flags.bits.refresh_alternate_frame = 0;
-        picParam->pic_flags.bits.copy_buffer_to_alternate = 2;
-    } else {
-        picParam->ref_last_frame = VA_INVALID_SURFACE;
-        picParam->ref_gf_frame = VA_INVALID_SURFACE;
-        picParam->ref_arf_frame = VA_INVALID_SURFACE;
-    }
+
+    m_vpxRefFrameManager->fillRefrenceParam((void*)picParam, picture->m_type, m_temporalLayer);
 
     picParam->coded_buf = picture->getCodedBufferID();
 
@@ -266,16 +253,7 @@ bool VaapiEncoderVP8::ensureQMatrix (const PicturePtr& picture)
 
 bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfacePtr& recon)
 {
-
-    if (pic->m_type == VAAPI_PICTURE_I) {
-        m_reference.clear();
-        m_reference.insert(m_reference.end(), MAX_REFERECNE_FRAME, recon);
-    } else {
-        m_reference.pop_front();
-        m_reference.push_back(recon);
-    }
-
-    return true;
+    return m_vpxRefFrameManager->referenceListUpdate(pic->m_type, recon, m_temporalLayer);
 }
 
 YamiStatus VaapiEncoderVP8::encodePicture(const PicturePtr& picture)

@@ -19,6 +19,7 @@
 
 #include "vaapiencoder_base.h"
 #include "vaapi/vaapiptrs.h"
+#include "vaapirefframe_vpx.h"
 #include <va/va_enc_vp8.h>
 #include <deque>
 
@@ -69,8 +70,10 @@ private:
 
     int m_qIndex;
 
+    uint8_t m_temporalLayer;
+
     typedef std::deque<SurfacePtr> ReferenceQueue;
-    std::deque<SurfacePtr> m_reference;
+    SharedPtr<VaapiRefFrameVpx> m_vpxRefFrameManager;
 
     /**
      * VaapiEncoderFactory registration result. This encoder is registered in
