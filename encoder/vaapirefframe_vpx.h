@@ -77,5 +77,38 @@ public:
     virtual bool referenceListUpdate(VaapiPictureType pictureType, const SurfacePtr& recon,
         uint8_t temporalLayer = 0);
 };
+
+class VaapiRefFrameSVCT : public VaapiRefFrameVpx {
+public:
+    VaapiRefFrameSVCT() {}
+    VaapiRefFrameSVCT(const SVCTVideoFrameRate& framerates, const uint32_t* layerBitrate,
+        uint32_t gop);
+    virtual uint8_t getTemporalLayer(uint32_t frameNum);
+    virtual int8_t getErrorResilient() { return 1; }
+
+    virtual bool fillRefrenceParam(void* picParam, VaapiPictureType pictureType,
+        uint8_t temporalLayer = 0) const;
+    virtual bool referenceListUpdate(VaapiPictureType pictureType, const SurfacePtr& recon,
+        uint8_t temporalLayer = 0);
+    virtual void printRatio();
+    virtual void fillLayerID(void*);
+    virtual void fillLayerBitrate(void*, uint32_t temporalId) const;
+    virtual void fillLayerFramerate(void*, uint32_t temporalId) const;
+
+protected:
+    int32_t getGcd();
+    uint8_t calculateFramerateRatio();
+    int32_t calculatePeriodicity();
+    int32_t calculateLayerIDs();
+
+private:
+private:
+    FractionVector m_framerates;
+    Int32Vector m_framerateRatio;
+    uint32_t m_periodicity;
+    uint32_t m_fps;
+    uint32_t m_tempIDs[32];
+    uint32_t m_layerBitRate[32];
+};
 }
 #endif /* vaapirefframe_vpx_h */
