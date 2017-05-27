@@ -87,7 +87,13 @@ YamiStatus VaapiEncoderVP8::start()
 {
     FUNC_ENTER();
     resetParams();
-    m_vpxRefFrameManager.reset(new VaapiRefFrameVp8(intraPeriod()));
+    if (m_videoParamCommon.svctFrameRate.num > 0) {
+        m_vpxRefFrameManager.reset(new VaapiRefFrameSVCT(m_videoParamCommon.svctFrameRate,
+            m_videoParamCommon.rcParams.layerBitRate, intraPeriod()));
+    }
+    else {
+        m_vpxRefFrameManager.reset(new VaapiRefFrameVp8(intraPeriod()));
+    }
     return VaapiEncoderBase::start();
 }
 
@@ -171,6 +177,7 @@ bool VaapiEncoderVP8::fill(VAEncSequenceParameterBufferVP8* seqParam) const
     seqParam->frame_height = height();
     seqParam->bits_per_second = bitRate();
     seqParam->intra_period = intraPeriod();
+    seqParam->error_resilient = m_vpxRefFrameManager->getErrorResilient();
     return true;
 }
 
@@ -183,6 +190,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
     m_vpxRefFrameManager->fillRefrenceParam((void*)picParam, picture->m_type, m_temporalLayer);
 
     picParam->coded_buf = picture->getCodedBufferID();
+    picParam->ref_flags.bits.temporal_id = m_temporalLayer;
 
     picParam->pic_flags.bits.show_frame = 1;
     /*TODO: multi partition*/
@@ -196,6 +204,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
 
     picParam->clamp_qindex_low = minQP();
     picParam->clamp_qindex_high = maxQP();
+    picParam->pic_flags.bits.refresh_entropy_probs = m_vpxRefFrameManager->getRefreshEntropyProbs();
     return TRUE;
 }
 
@@ -214,6 +223,13 @@ bool VaapiEncoderVP8::fill(VAQMatrixBufferVP8* qMatrix) const
     return true;
 }
 
+void VaapiEncoderVP8::fill(VAEncMiscParameterRateControl* rateControl,
+    uint32_t temporalId) const
+{
+    VaapiEncoderBase::fill(rateControl);
+
+    return m_vpxRefFrameManager->fillLayerBitrate(rateControl, temporalId);
+}
 
 bool VaapiEncoderVP8::ensureSequence(const PicturePtr& picture)
 {
@@ -254,6 +270,48 @@ bool VaapiEncoderVP8::ensureQMatrix (const PicturePtr& picture)
 bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfacePtr& recon)
 {
     return m_vpxRefFrameManager->referenceListUpdate(pic->m_type, recon, m_temporalLayer);
+}
+
+/* Generates additional control parameters */
+bool VaapiEncoderVP8::ensureMiscParams(VaapiEncPicture* picture)
+{
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+        return false;
+    if (hrd)
+        VaapiEncoderBase::fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+
+    VideoRateControl mode = rateControlMode();
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
+        if (m_vpxRefFrameManager->getLayerNum() > 0) {
+            VAEncMiscParameterTemporalLayerStructure* layerParam = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeTemporalLayerStructure,
+                    layerParam))
+                return false;
+            if (layerParam)
+                m_vpxRefFrameManager->fillLayerID(layerParam);
+
+            for (uint32_t i = 0; i < m_vpxRefFrameManager->getLayerNum(); i++) {
+                VAEncMiscParameterRateControl* rateControl = NULL;
+                if (!picture->newMisc(VAEncMiscParameterTypeRateControl,
+                        rateControl))
+                    return false;
+                if (rateControl)
+                    fill(rateControl, i);
+
+                VAEncMiscParameterFrameRate* frameRate = NULL;
+                if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
+                    return false;
+                if (frameRate)
+                    m_vpxRefFrameManager->fillLayerFramerate(frameRate, i);
+            }
+        }
+    }
+
+    return true;
 }
 
 YamiStatus VaapiEncoderVP8::encodePicture(const PicturePtr& picture)
