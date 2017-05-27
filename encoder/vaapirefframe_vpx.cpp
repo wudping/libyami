@@ -94,8 +94,10 @@ VaapiRefFrameSVCT::VaapiRefFrameSVCT(const SVCTVideoFrameRate& framerates, const
     m_fps = m_framerates[i - 1].frameRateNum / m_framerates[i - 1].frameRateDenom;
     if(m_fps > m_gopSize)
         WARNING("fps(%d) > gopSize(%d), is discouraged.", m_fps, m_gopSize);
+    printf("wdp  %s %s %d, m_fps = %d, m_gopSize = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_fps, m_gopSize);
     calculatePeriodicity();
     calculateLayerIDs();
+    printLayerIDs();
 }
 
 bool VaapiRefFrameSVCT::fillRefrenceParam(void* picParam, VaapiPictureType pictureType,
@@ -172,18 +174,30 @@ bool VaapiRefFrameSVCT::referenceListUpdate(VaapiPictureType pictureType, const 
 uint8_t VaapiRefFrameSVCT::getTemporalLayer(uint32_t frameNum)
 {
     frameNum %= m_gopSize;
-    return m_tempIDs[frameNum % m_periodicity];
+    return m_tempLayerIDs[frameNum % m_periodicity];
 }
 
 int32_t VaapiRefFrameSVCT::calculateLayerIDs()
 {
     uint32_t layer = 0;
-    for (uint32_t frameNum = 0; frameNum < m_periodicity; frameNum++) {
-        for (layer = 0; layer < m_framerateRatio.size(); layer++)
-            if (!(frameNum % (m_periodicity / m_framerateRatio[layer])))
-                break;
-        m_tempIDs[frameNum] = layer;
+    uint32_t m_frameNum[MAX_TEMPORAL_LAYER_NUM];
+    uint32_t m_frameNumAssigned[MAX_TEMPORAL_LAYER_NUM];
+
+    memset(m_frameNumAssigned, 0, sizeof(m_frameNumAssigned));
+    m_frameNum[0] = m_framerateRatio[0];
+    for (uint32_t i = 1; i < m_layerNum; i++) {
+        m_frameNum[i] = m_framerateRatio[i] - m_framerateRatio[i - 1];
     }
+    for (uint32_t i = 0; i < m_periodicity; i++)
+        for (layer = 0; layer < m_framerateRatio.size(); layer++){
+            if (!(i % (m_periodicity / m_framerateRatio[layer]))){
+                if(m_frameNumAssigned[layer] < m_frameNum[layer]){
+                    m_tempLayerIDs.push_back(layer);
+                    m_frameNumAssigned[layer]++;
+                    break;
+                }
+            }
+        }
 
     return 0;
 }
@@ -211,14 +225,13 @@ uint8_t VaapiRefFrameSVCT::calculateFramerateRatio()
         }
         m_framerateRatio.push_back(numerator);
     }
-    printRatio();
 
     int32_t gcd = getGcd();
     if ((gcd != 0) && (gcd != 1))
         for (uint8_t i = 0; i < m_framerates.size(); i++)
             m_framerateRatio[i] /= gcd;
 
-    //printRatio();
+    printRatio();
 
     return 0;
 }
@@ -267,6 +280,21 @@ void VaapiRefFrameSVCT::printRatio()
     return;
 }
 
+void VaapiRefFrameSVCT::printLayerIDs()
+{
+    printf("LayerIDs: \n");
+    for (uint8_t i = 0; i < m_periodicity; i++) {
+        printf("%d  ", i);
+    }
+    printf("\n");
+    for (uint8_t i = 0; i < m_periodicity; i++) {
+        printf("%d  ", m_tempLayerIDs[i]);
+    }
+    printf("\n");
+
+    return;
+}
+
 void VaapiRefFrameSVCT::fillLayerID(void* dt)
 {
     VAEncMiscParameterTemporalLayerStructure* layerParam = static_cast<VAEncMiscParameterTemporalLayerStructure*>(dt);
@@ -274,7 +302,7 @@ void VaapiRefFrameSVCT::fillLayerID(void* dt)
     layerParam->periodicity = m_periodicity;
 
     for (uint32_t i = 0; i < layerParam->periodicity; i++)
-        layerParam->layer_id[i] = m_tempIDs[i % 8];
+        layerParam->layer_id[i] = m_tempLayerIDs[i % layerParam->periodicity];
     return;
 }
 
