@@ -99,6 +99,7 @@ typedef struct VideoEncOutputBuffer {
     uint32_t remainingSize;
     uint32_t flag;                   //Key frame, Codec Data etc
     VideoOutputFormat format;   //output format
+    uint8_t temporalLayer;
     uint64_t timeStamp;         //reserved
 }VideoEncOutputBuffer;
 
