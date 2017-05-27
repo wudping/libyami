@@ -32,6 +32,14 @@ namespace YamiMediaCodec {
 
 using namespace std;
 
+VaapiRefFrameVpx::VaapiRefFrameVpx(uint32_t layerNum, uint32_t gop)
+    : m_gopSize(gop)
+{
+    assert(layerNum > 0);
+    assert(layerNum < MAX_TEMPORAL_LAYER_NUM);
+    m_layerNum = layerNum;
+}
+
 bool VaapiRefFrameVp8::referenceListUpdate(VaapiPictureType pictureType, const SurfacePtr& recon,
     uint8_t temporalLayer)
 {
@@ -76,19 +84,16 @@ bool VaapiRefFrameVp8::fillRefrenceParam(void* picParam, VaapiPictureType pictur
 VaapiRefFrameSVCT::VaapiRefFrameSVCT(const SVCTVideoFrameRate& framerates, const uint32_t* layerBitrate, uint32_t gop)
     : VaapiRefFrameVpx(framerates.num, gop)
 {
-    if (framerates.num <= 0 || framerates.num > MAX_TEMPORAL_LAYER_NUM) {
-        return;
-    }
     uint32_t gcd;
     uint32_t i;
-    for (i = 0; i < framerates.num; i++) {
-        VideoFrameRate framerate;
-        framerate.frameRateNum = framerates.fraction[i].frameRateNum;
-        framerate.frameRateDenom = framerates.fraction[i].frameRateDenom;
-        gcd = __gcd(framerate.frameRateNum, framerate.frameRateDenom);
-        framerate.frameRateNum /= gcd;
-        framerate.frameRateDenom /= gcd;
-        m_framerates.push_back(framerate);
+    memset(m_layerBitRate, 0, sizeof(m_layerBitRate));
+    memset(m_framerateRatio, 0, sizeof(m_framerateRatio));
+    for (i = 0; i < m_layerNum; i++) {
+        m_framerates[i].frameRateNum = framerates.fraction[i].frameRateNum;
+        m_framerates[i].frameRateDenom = framerates.fraction[i].frameRateDenom;
+        gcd = __gcd(m_framerates[i].frameRateNum, m_framerates[i].frameRateDenom);
+        m_framerates[i].frameRateNum /= gcd;
+        m_framerates[i].frameRateDenom /= gcd;
         m_layerBitRate[i] = layerBitrate[i];
     }
     m_fps = m_framerates[i - 1].frameRateNum / m_framerates[i - 1].frameRateDenom;
@@ -177,7 +182,7 @@ uint8_t VaapiRefFrameSVCT::getTemporalLayer(uint32_t frameNum)
     return m_tempLayerIDs[frameNum % m_periodicity];
 }
 
-int32_t VaapiRefFrameSVCT::calculateLayerIDs()
+uint32_t VaapiRefFrameSVCT::calculateLayerIDs()
 {
     uint32_t layer = 0;
     uint32_t m_frameNum[MAX_TEMPORAL_LAYER_NUM];
@@ -189,7 +194,7 @@ int32_t VaapiRefFrameSVCT::calculateLayerIDs()
         m_frameNum[i] = m_framerateRatio[i] - m_framerateRatio[i - 1];
     }
     for (uint32_t i = 0; i < m_periodicity; i++)
-        for (layer = 0; layer < m_framerateRatio.size(); layer++){
+        for (layer = 0; layer < m_layerNum; layer++){
             if (!(i % (m_periodicity / m_framerateRatio[layer]))){
                 if(m_frameNumAssigned[layer] < m_frameNum[layer]){
                     m_tempLayerIDs.push_back(layer);
@@ -202,12 +207,12 @@ int32_t VaapiRefFrameSVCT::calculateLayerIDs()
     return 0;
 }
 
-int32_t VaapiRefFrameSVCT::calculatePeriodicity()
+uint32_t VaapiRefFrameSVCT::calculatePeriodicity()
 {
-    if (!m_framerateRatio.size())
+    if (!m_framerateRatio[0])
         calculateFramerateRatio();
 
-    m_periodicity = m_framerateRatio.back();
+    m_periodicity = m_framerateRatio[m_layerNum - 1];
 
     return m_periodicity;
 }
@@ -215,20 +220,20 @@ int32_t VaapiRefFrameSVCT::calculatePeriodicity()
 uint8_t VaapiRefFrameSVCT::calculateFramerateRatio()
 {
     int32_t numerator;
-    for (uint8_t i = 0; i < m_framerates.size(); i++) {
+    for (uint8_t i = 0; i < m_layerNum; i++) {
         numerator = 1;
-        for (uint8_t j = 0; j < m_framerates.size(); j++) {
+        for (uint8_t j = 0; j < m_layerNum; j++) {
             if (j != i)
                 numerator *= m_framerates[j].frameRateDenom;
             else
                 numerator *= m_framerates[j].frameRateNum;
         }
-        m_framerateRatio.push_back(numerator);
+        m_framerateRatio[i] = numerator;
     }
 
-    int32_t gcd = getGcd();
+    uint32_t gcd = getGcd();
     if ((gcd != 0) && (gcd != 1))
-        for (uint8_t i = 0; i < m_framerates.size(); i++)
+        for (uint8_t i = 0; i < m_layerNum; i++)
             m_framerateRatio[i] /= gcd;
 
     printRatio();
@@ -236,21 +241,21 @@ uint8_t VaapiRefFrameSVCT::calculateFramerateRatio()
     return 0;
 }
 
-int32_t VaapiRefFrameSVCT::getGcd()
+uint32_t VaapiRefFrameSVCT::getGcd()
 {
-    Int32Vector gcdFramerate;
-    int32_t notGcd = 0;
+    uint32_t gcdFramerate[MAX_TEMPORAL_LAYER_NUM];
+    uint32_t notGcd = 0;
 
-    gcdFramerate.push_back(m_framerateRatio[0]);
-    int32_t min = gcdFramerate[0];
-    for (uint8_t i = 1; i < m_framerateRatio.size(); i++) {
-        gcdFramerate.push_back(m_framerateRatio[i]);
+    gcdFramerate[0] = m_framerateRatio[0];
+    uint32_t min = gcdFramerate[0];
+    for (uint8_t i = 1; i < m_layerNum; i++) {
+        gcdFramerate[i] = m_framerateRatio[i];
         if (min > gcdFramerate[i])
             min = gcdFramerate[i];
     }
     while (min != 1) {
         notGcd = 0;
-        for (uint8_t i = 0; i < gcdFramerate.size(); i++) {
+        for (uint8_t i = 0; i < m_layerNum; i++) {
             gcdFramerate[i] = __gcd(min, gcdFramerate[i]);
             if (i > 1)
                 if (gcdFramerate[i] != gcdFramerate[i - 1])
@@ -267,10 +272,8 @@ int32_t VaapiRefFrameSVCT::getGcd()
 
 void VaapiRefFrameSVCT::printRatio()
 {
-    if (!m_framerateRatio.size())
-        return;
     printf("ratio: \n");
-    for (uint8_t i = 0; i < m_framerateRatio.size(); i++) {
+    for (uint8_t i = 0; i < m_layerNum; i++) {
         if (i != 0)
             printf(" : ");
         printf("%d", m_framerateRatio[i]);

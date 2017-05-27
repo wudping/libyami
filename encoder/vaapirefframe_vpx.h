@@ -28,8 +28,8 @@ namespace YamiMediaCodec {
 
 #define MAX_TEMPORAL_LAYER_NUM 32
 
-typedef std::vector<VideoFrameRate> FractionVector;
 typedef std::vector<int32_t> Int32Vector;
+typedef std::vector<uint32_t> Uint32Vector;
 
 class VaapiRefFrameVpx {
 public:
@@ -38,11 +38,7 @@ public:
         , m_gopSize(30)
     {
     }
-    VaapiRefFrameVpx(uint32_t layerNum, uint32_t gop)
-        : m_layerNum(layerNum)
-        , m_gopSize(gop)
-    {
-    }
+    VaapiRefFrameVpx(uint32_t layerNum, uint32_t gop);
 
     virtual uint8_t getTemporalLayer(uint32_t frameNum) { return 0; }
     virtual uint8_t getLayerNum() { return m_layerNum; }
@@ -99,15 +95,15 @@ public:
     virtual void fillLayerFramerate(void*, uint32_t temporalId) const;
 
 protected:
-    int32_t getGcd();
+    uint32_t getGcd();
     uint8_t calculateFramerateRatio();
-    int32_t calculatePeriodicity();
-    int32_t calculateLayerIDs();
+    uint32_t calculatePeriodicity();
+    uint32_t calculateLayerIDs();
 
 private:
 private:
-    FractionVector m_framerates;
-    Int32Vector m_framerateRatio; //todo
+    VideoFrameRate m_framerates[MAX_TEMPORAL_LAYER_NUM];
+    uint32_t m_framerateRatio[MAX_TEMPORAL_LAYER_NUM];
     uint32_t m_periodicity;
     uint32_t m_fps;
     Int32Vector m_tempLayerIDs;
