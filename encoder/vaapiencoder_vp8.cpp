@@ -49,6 +49,46 @@ public:
     }
 };
 
+class IVaapiFlagParameter {
+public:
+    virtual bool fillPictureParameter(VAEncPictureParameterBufferVP8*, uint8_t) const = 0;
+    virtual bool fillLayerID(VAEncMiscParameterTemporalLayerStructure*) const = 0;
+    virtual bool fillLayerBitrate(VAEncMiscParameterRateControl*, uint32_t temporalId) const = 0;
+    virtual bool fillLayerFramerate(VAEncMiscParameterFrameRate* frameRate, uint32_t temporalId) const = 0;
+
+    virtual int8_t getErrorResilient() const = 0;
+    virtual int8_t getRefreshEntropyProbs() const = 0;
+    virtual uint8_t getTemporalLayer(uint32_t frameNum) const = 0;
+};
+
+class VaapiFlagParameterNormal : public IVaapiFlagParameter {
+public:
+    virtual bool fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer) const;
+    virtual bool fillLayerID(VAEncMiscParameterTemporalLayerStructure* temporalLayer) const { return true; }
+    virtual bool fillLayerBitrate(VAEncMiscParameterRateControl* rateControl, uint32_t temporalId) const { return true; }
+    virtual bool fillLayerFramerate(VAEncMiscParameterFrameRate* frameRate, uint32_t temporalId) const { return true; }
+
+    virtual int8_t getErrorResilient() const { return 0; }
+    virtual int8_t getRefreshEntropyProbs() const { return 0; }
+    virtual uint8_t getTemporalLayer(uint32_t frameNum) const { return 0; }
+};
+
+bool VaapiFlagParameterNormal::fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer) const
+{
+    if (!pictureParameter) {
+        ERROR("pictureParameter is NULL.");
+        return false;
+    }
+
+    pictureParameter->pic_flags.bits.refresh_last = 1;
+    pictureParameter->pic_flags.bits.refresh_golden_frame = 0;
+    pictureParameter->pic_flags.bits.copy_buffer_to_golden = 1;
+    pictureParameter->pic_flags.bits.refresh_alternate_frame = 0;
+    pictureParameter->pic_flags.bits.copy_buffer_to_alternate = 2;
+
+    return true;
+}
+
 VaapiEncoderVP8::VaapiEncoderVP8():
 	m_frameCount(0),
 	m_qIndex(VP8_DEFAULT_QP)
