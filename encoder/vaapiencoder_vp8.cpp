@@ -336,14 +336,17 @@ void VaapiFlagParameterSVCT::printLayerIDs()
     return;
 }
 
-VaapiEncoderVP8::VaapiEncoderVP8():
-	m_frameCount(0),
-	m_qIndex(VP8_DEFAULT_QP)
+VaapiEncoderVP8::VaapiEncoderVP8()
+    : m_frameCount(0)
+    , m_qIndex(VP8_DEFAULT_QP)
 {
     m_videoParamCommon.profile = VAProfileVP8Version0_3;
     m_videoParamCommon.rcParams.minQP = 9;
     m_videoParamCommon.rcParams.maxQP = 127;
     m_videoParamCommon.rcParams.initQP = VP8_DEFAULT_QP;
+    m_temporalLayerID = 0;
+    m_layerNum = 1;
+    m_isSVCT = false;
 }
 
 VaapiEncoderVP8::~VaapiEncoderVP8()
@@ -368,6 +371,17 @@ void VaapiEncoderVP8::resetParams()
     m_maxCodedbufSize = width() * height() * 3 / 2 + VP8_HEADER_MAX_SIZE;
     if (ipPeriod() == 0)
         m_videoParamCommon.intraPeriod = 1;
+    m_layerNum = 1;
+    m_isSVCT = false;
+    if (m_videoParamCommon.svctFrameRate.num > 0) {
+        m_flagParameter.reset(new VaapiFlagParameterSVCT(m_videoParamCommon.svctFrameRate,
+            m_videoParamCommon.rcParams.layerBitRate));
+        m_layerNum = m_videoParamCommon.svctFrameRate.num;
+        m_isSVCT = true;
+    }
+    else {
+        m_flagParameter.reset(new VaapiFlagParameterNormal());
+    }
 }
 
 YamiStatus VaapiEncoderVP8::start()
@@ -381,7 +395,6 @@ void VaapiEncoderVP8::flush()
 {
     FUNC_ENTER();
     m_frameCount = 0;
-    m_reference.clear();
     VaapiEncoderBase::flush();
 }
 
@@ -429,6 +442,7 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
     else
         picture->m_type = VAAPI_PICTURE_P;
 
+    m_temporalLayerID = m_flagParameter->getTemporalLayer(m_frameCount % keyFramePeriod());
     m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
@@ -457,6 +471,7 @@ bool VaapiEncoderVP8::fill(VAEncSequenceParameterBufferVP8* seqParam) const
     seqParam->frame_height = height();
     seqParam->bits_per_second = bitRate();
     seqParam->intra_period = intraPeriod();
+    seqParam->error_resilient = m_flagParameter->getErrorResilient();
     return true;
 }
 
@@ -467,15 +482,10 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
     picParam->reconstructed_frame = surface->getID();
     if (picture->m_type == VAAPI_PICTURE_P) {
         picParam->pic_flags.bits.frame_type = 1;
-        ReferenceQueue::const_iterator it = m_reference.begin();
-        picParam->ref_arf_frame = (*it++)->getID();
-        picParam->ref_gf_frame = (*it++)->getID();
-        picParam->ref_last_frame = (*it)->getID();
-        picParam->pic_flags.bits.refresh_last = 1;
-        picParam->pic_flags.bits.refresh_golden_frame = 0;
-        picParam->pic_flags.bits.copy_buffer_to_golden = 1;
-        picParam->pic_flags.bits.refresh_alternate_frame = 0;
-        picParam->pic_flags.bits.copy_buffer_to_alternate = 2;
+        picParam->ref_arf_frame = m_altFrame->getID();
+        picParam->ref_gf_frame = m_goldenFrame->getID();
+        picParam->ref_last_frame = m_lastFrame->getID();
+        m_flagParameter->fillPictureParameter(picParam, m_temporalLayerID);
     } else {
         picParam->ref_last_frame = VA_INVALID_SURFACE;
         picParam->ref_gf_frame = VA_INVALID_SURFACE;
@@ -483,6 +493,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
     }
 
     picParam->coded_buf = picture->getCodedBufferID();
+    picParam->ref_flags.bits.temporal_id = m_temporalLayerID;
 
     picParam->pic_flags.bits.show_frame = 1;
     /*TODO: multi partition*/
@@ -514,6 +525,13 @@ bool VaapiEncoderVP8::fill(VAQMatrixBufferVP8* qMatrix) const
     return true;
 }
 
+bool VaapiEncoderVP8::fill(VAEncMiscParameterRateControl* rateControl,
+    uint32_t temporalId) const
+{
+    VaapiEncoderBase::fill(rateControl);
+
+    return m_flagParameter->fillLayerBitrate(rateControl, temporalId);
+}
 
 bool VaapiEncoderVP8::ensureSequence(const PicturePtr& picture)
 {
@@ -553,13 +571,74 @@ bool VaapiEncoderVP8::ensureQMatrix (const PicturePtr& picture)
 
 bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfacePtr& recon)
 {
+    if (VAAPI_PICTURE_I == pic->m_type) {
+        m_lastFrame = recon;
+        m_goldenFrame = recon;
+        m_altFrame = recon;
+    }
+    else {
+        if (m_isSVCT) {
+            switch (m_temporalLayerID) {
+            case 2:
+                m_altFrame = recon;
+                break;
+            case 1:
+                m_goldenFrame = recon;
+                break;
+            case 0:
+                m_lastFrame = recon;
+                break;
+            default:
+                ERROR("temporal layer %d is out of the range[0, 2].", m_temporalLayerID);
+                return FALSE;
+            }
+        }
+        else {
+            m_altFrame = m_goldenFrame;
+            m_goldenFrame = m_lastFrame;
+            m_lastFrame = recon;
+        }
+    }
+    return true;
+}
 
-    if (pic->m_type == VAAPI_PICTURE_I) {
-        m_reference.clear();
-        m_reference.insert(m_reference.end(), MAX_REFERECNE_FRAME, recon);
-    } else {
-        m_reference.pop_front();
-        m_reference.push_back(recon);
+/* Generates additional control parameters */
+bool VaapiEncoderVP8::ensureMiscParams(VaapiEncPicture* picture)
+{
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+        return false;
+    if (hrd)
+        VaapiEncoderBase::fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+
+    VideoRateControl mode = rateControlMode();
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
+        if (m_isSVCT) {
+            VAEncMiscParameterTemporalLayerStructure* layerParam = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeTemporalLayerStructure,
+                    layerParam))
+                return false;
+            if (layerParam)
+                m_flagParameter->fillLayerID(layerParam);
+        }
+
+        for (uint32_t i = 0; i < m_layerNum; i++) {
+            VAEncMiscParameterRateControl* rateControl = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeRateControl,
+                    rateControl))
+                return false;
+            if (rateControl)
+                fill(rateControl, i);
+
+            VAEncMiscParameterFrameRate* frameRate = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
+                return false;
+            if (frameRate)
+                m_flagParameter->fillLayerFramerate(frameRate, i);
+        }
     }
 
     return true;

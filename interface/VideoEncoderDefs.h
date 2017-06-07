@@ -218,6 +218,7 @@ typedef struct VideoParamsCommon {
     uint8_t level;
     VideoResolution resolution;
     VideoFrameRate frameRate;
+    SVCTVideoFrameRate svctFrameRate;
     uint32_t intraPeriod;
     uint32_t ipPeriod;
     uint32_t numRefFrames;

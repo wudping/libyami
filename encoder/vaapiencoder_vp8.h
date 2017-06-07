@@ -28,11 +28,13 @@ namespace YamiMediaCodec{
 #define VP8_MAX_TEMPORAL_LAYER_NUM 3
 
 class VaapiEncPictureVP8;
+class IVaapiFlagParameter;
 class VaapiEncoderVP8 : public VaapiEncoderBase {
 public:
     //shortcuts, It's intended to elimilate codec diffrence
     //to make template for other codec implelmentation.
     typedef SharedPtr<VaapiEncPictureVP8> PicturePtr;
+    typedef SharedPtr<IVaapiFlagParameter> FlagParameterPtr;
     typedef SurfacePtr ReferencePtr;
 
     VaapiEncoderVP8();
@@ -47,6 +49,7 @@ public:
 
 protected:
     virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
+    virtual bool ensureMiscParams(VaapiEncPicture*);
 
 private:
     friend class FactoryTest<IVideoEncoder, VaapiEncoderVP8>;
@@ -56,6 +59,7 @@ private:
     bool fill(VAEncSequenceParameterBufferVP8*) const;
     bool fill(VAEncPictureParameterBufferVP8*, const PicturePtr&, const SurfacePtr&) const ;
     bool fill(VAQMatrixBufferVP8* qMatrix) const;
+    bool fill(VAEncMiscParameterRateControl*, uint32_t temporalId) const;
     bool ensureSequence(const PicturePtr&);
     bool ensurePicture (const PicturePtr&, const SurfacePtr&);
     bool ensureQMatrix (const PicturePtr&);
@@ -71,8 +75,13 @@ private:
 
     int m_qIndex;
 
-    typedef std::deque<SurfacePtr> ReferenceQueue;
-    std::deque<SurfacePtr> m_reference;
+    SurfacePtr m_lastFrame;
+    SurfacePtr m_goldenFrame;
+    SurfacePtr m_altFrame;
+    FlagParameterPtr m_flagParameter;
+    uint8_t m_temporalLayerID;
+    uint8_t m_layerNum;
+    bool m_isSVCT;
 
     /**
      * VaapiEncoderFactory registration result. This encoder is registered in
