@@ -25,6 +25,8 @@
 
 namespace YamiMediaCodec{
 
+#define VP8_MAX_TEMPORAL_LAYER_NUM 3
+
 class VaapiEncPictureVP8;
 class VaapiEncoderVP8 : public VaapiEncoderBase {
 public:

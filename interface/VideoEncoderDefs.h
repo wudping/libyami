@@ -152,6 +152,11 @@ typedef struct VideoFrameRate {
     uint32_t frameRateDenom;
 }VideoFrameRate;
 
+typedef struct SVCTVideoFrameRate {
+    VideoFrameRate fraction[32];
+    uint8_t num;
+} SVCTVideoFrameRate;
+
 typedef struct VideoResolution {
     uint32_t width;
     uint32_t height;
