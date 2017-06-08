@@ -52,7 +52,7 @@ public:
 
 class IVaapiFlagParameter {
 public:
-    virtual bool fillPictureParameter(VAEncPictureParameterBufferVP8*, uint8_t) const = 0;
+    virtual bool fillPictureParameter(VAEncPictureParameterBufferVP8*, uint8_t) = 0;
     virtual bool fillLayerID(VAEncMiscParameterTemporalLayerStructure*) const = 0;
     virtual bool fillLayerBitrate(VAEncMiscParameterRateControl*, uint32_t temporalId) const = 0;
     virtual bool fillLayerFramerate(VAEncMiscParameterFrameRate* frameRate, uint32_t temporalId) const = 0;
@@ -60,11 +60,12 @@ public:
     virtual int8_t getErrorResilient() const = 0;
     virtual int8_t getRefreshEntropyProbs() const = 0;
     virtual uint8_t getTemporalLayer(uint32_t frameNum) const = 0;
+    virtual bool resetRefNum() = 0;
 };
 
 class VaapiFlagParameterNormal : public IVaapiFlagParameter {
 public:
-    virtual bool fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer) const;
+    virtual bool fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer);
     virtual bool fillLayerID(VAEncMiscParameterTemporalLayerStructure* temporalLayer) const { return true; }
     virtual bool fillLayerBitrate(VAEncMiscParameterRateControl* rateControl, uint32_t temporalId) const { return true; }
     virtual bool fillLayerFramerate(VAEncMiscParameterFrameRate* frameRate, uint32_t temporalId) const { return true; }
@@ -72,6 +73,7 @@ public:
     virtual int8_t getErrorResilient() const { return 0; }
     virtual int8_t getRefreshEntropyProbs() const { return 0; }
     virtual uint8_t getTemporalLayer(uint32_t frameNum) const { return 0; }
+    virtual bool resetRefNum() { return true; }
 };
 
 class VaapiFlagParameterSVCT : public IVaapiFlagParameter {
@@ -79,7 +81,7 @@ public:
     VaapiFlagParameterSVCT(const SVCTVideoFrameRate& framerates, const uint32_t* layerBitrate);
 
 public:
-    virtual bool fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer) const;
+    virtual bool fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer);
     virtual bool fillLayerID(VAEncMiscParameterTemporalLayerStructure* temporalLayer) const;
     virtual bool fillLayerBitrate(VAEncMiscParameterRateControl* rateControl, uint32_t temporalId) const;
     virtual bool fillLayerFramerate(VAEncMiscParameterFrameRate* frameRate, uint32_t temporalId) const;
@@ -87,6 +89,7 @@ public:
     virtual int8_t getErrorResilient() const { return 1; }
     virtual int8_t getRefreshEntropyProbs() const { return 0; }
     virtual uint8_t getTemporalLayer(uint32_t frameNum) const { return m_tempLayerIDs[frameNum % m_periodicity]; }
+    virtual bool resetRefNum();
 
 public:
     void printRatio();
@@ -105,9 +108,11 @@ private:
     uint32_t m_periodicity;
     Uint32Vector m_tempLayerIDs;
     uint8_t m_layerNum;
+    bool m_havingAlt;
+    bool m_havingGld;
 };
 
-bool VaapiFlagParameterNormal::fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer) const
+bool VaapiFlagParameterNormal::fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer)
 {
     if (!pictureParameter) {
         ERROR("pictureParameter is NULL.");
@@ -130,6 +135,8 @@ VaapiFlagParameterSVCT::VaapiFlagParameterSVCT(const SVCTVideoFrameRate& framera
     assert(framerates.num > 0);
     assert(framerates.num <= VP8_MAX_TEMPORAL_LAYER_NUM);
     assert(layerBitrate);
+    m_havingAlt = false;
+    m_havingGld = false;
     m_layerNum = framerates.num;
     memset(m_layerBitRate, 0, sizeof(m_layerBitRate));
     memset(m_framerateRatio, 0, sizeof(m_framerateRatio));
@@ -166,14 +173,14 @@ bool VaapiFlagParameterSVCT::fillLayerBitrate(VAEncMiscParameterRateControl* rat
 
 bool VaapiFlagParameterSVCT::fillLayerFramerate(VAEncMiscParameterFrameRate* frameRate, uint32_t temporalId) const
 {
-    frameRate->framerate = m_framerates[temporalId].frameRateNum << 16;
-    frameRate->framerate |= m_framerates[temporalId].frameRateDenom;
+    frameRate->framerate = m_framerates[temporalId].frameRateDenom << 16;
+    frameRate->framerate |= m_framerates[temporalId].frameRateNum;
 
     frameRate->framerate_flags.bits.temporal_id = temporalId;
     return true;
 }
 
-bool VaapiFlagParameterSVCT::fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer) const
+bool VaapiFlagParameterSVCT::fillPictureParameter(VAEncPictureParameterBufferVP8* pictureParameter, uint8_t temporalLayer)
 {
     if (!pictureParameter) {
         ERROR("pictureParameter is NULL.");
@@ -183,24 +190,46 @@ bool VaapiFlagParameterSVCT::fillPictureParameter(VAEncPictureParameterBufferVP8
     pictureParameter->pic_flags.bits.refresh_last = 0;
     pictureParameter->pic_flags.bits.refresh_golden_frame = 0;
     pictureParameter->pic_flags.bits.refresh_alternate_frame = 0;
+    
+    pictureParameter->pic_flags.bits.copy_buffer_to_golden = 0;
+    pictureParameter->pic_flags.bits.copy_buffer_to_alternate = 0;
 
+    //m_havingGld = false;
+    //m_havingAlt = false;
     switch (temporalLayer) {
     case 2:
+        if(! m_havingGld)
+            pictureParameter->ref_flags.bits.no_ref_gf = 1;
+        if(! m_havingAlt)
+            pictureParameter->ref_flags.bits.no_ref_arf = 1;
         pictureParameter->pic_flags.bits.refresh_alternate_frame = 1;
+        m_havingAlt = true;
         break;
     case 1:
-        pictureParameter->pic_flags.bits.refresh_golden_frame = 1;
         pictureParameter->ref_flags.bits.no_ref_arf = 1;
+        if(! m_havingGld)
+            pictureParameter->ref_flags.bits.no_ref_gf = 1;
+        pictureParameter->pic_flags.bits.refresh_golden_frame = 1;
+        m_havingGld = true;
         break;
     case 0:
-        pictureParameter->pic_flags.bits.refresh_last = 1;
         pictureParameter->ref_flags.bits.no_ref_gf = 1;
         pictureParameter->ref_flags.bits.no_ref_arf = 1;
+        pictureParameter->pic_flags.bits.refresh_last = 1;
         break;
     default:
         ERROR("temporal layer %d is out of the range[0, 2].", temporalLayer);
         return false;
     }
+
+    printf("wdp  %s %s %d xxzzzxx, temporalLayer = %d, refresh_last = %d, refresh_golden_frame = %d, refresh_alternate_frame = %d, no_ref_last = %d, no_ref_gf = %d, no_ref_arf = %d ====\n", __FILE__, __FUNCTION__, __LINE__, temporalLayer, 
+        pictureParameter->pic_flags.bits.refresh_last,
+        pictureParameter->pic_flags.bits.refresh_golden_frame,
+        pictureParameter->pic_flags.bits.refresh_alternate_frame,
+        pictureParameter->ref_flags.bits.no_ref_last,
+        pictureParameter->ref_flags.bits.no_ref_gf,
+        pictureParameter->ref_flags.bits.no_ref_arf);
+
 
     return true;
 }
@@ -304,6 +333,13 @@ uint32_t VaapiFlagParameterSVCT::calculateGCD(uint32_t* gcdArray, uint32_t num)
     }
 
     return min;
+}
+
+bool VaapiFlagParameterSVCT::resetRefNum()
+{
+    m_havingAlt = false;
+    m_havingGld = false;
+    return true;
 }
 
 void VaapiFlagParameterSVCT::printRatio()
@@ -444,6 +480,7 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
 
     m_temporalLayerID = m_flagParameter->getTemporalLayer(m_frameCount % keyFramePeriod());
     picture->m_temporalLayerID = m_temporalLayerID;
+    printf("wdp  %s %s %d, m_frameCount = %d, m_temporalLayerID = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameCount, m_temporalLayerID);
     m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
@@ -491,6 +528,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
         picParam->ref_last_frame = VA_INVALID_SURFACE;
         picParam->ref_gf_frame = VA_INVALID_SURFACE;
         picParam->ref_arf_frame = VA_INVALID_SURFACE;
+        m_flagParameter->resetRefNum();
     }
 
     picParam->coded_buf = picture->getCodedBufferID();
@@ -591,7 +629,7 @@ bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfaceP
                 break;
             default:
                 ERROR("temporal layer %d is out of the range[0, 2].", m_temporalLayerID);
-                return FALSE;
+                return false;
             }
         }
         else {
