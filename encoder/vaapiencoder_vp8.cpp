@@ -168,6 +168,8 @@ bool VaapiFlagParameterSVCT::fillLayerBitrate(VAEncMiscParameterRateControl* rat
 {
     rateControl->bits_per_second = m_layerBitRate[temporalId];
     rateControl->rc_flags.bits.temporal_id = temporalId;
+    printf("wdp  %s %s %d, rateControl->bits_per_second[%d] = %d ====\n", __FILE__, __FUNCTION__, __LINE__, temporalId, rateControl->bits_per_second);
+    
     return true;
 }
 
