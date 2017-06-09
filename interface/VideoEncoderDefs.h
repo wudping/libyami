@@ -92,6 +92,10 @@ typedef enum {
 #define VIDEO_PARAMS_QUALITYLEVEL_MIN 1
 #define VIDEO_PARAMS_QUALITYLEVEL_MAX 7
 
+//for SVC-T
+#define TEMPORAL_LAYER_NUMBER   32
+
+
 typedef struct VideoEncOutputBuffer {
     uint8_t *data;
     uint32_t bufferSize;        //buffer size
