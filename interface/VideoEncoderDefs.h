@@ -158,7 +158,7 @@ typedef struct VideoFrameRate {
 }VideoFrameRate;
 
 typedef struct SVCTVideoFrameRate {
-    VideoFrameRate fraction[32];
+    VideoFrameRate fraction[TEMPORAL_LAYER_NUMBER];
     uint8_t num;
 } SVCTVideoFrameRate;
 

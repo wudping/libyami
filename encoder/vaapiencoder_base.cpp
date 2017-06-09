@@ -232,7 +232,6 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
         } else
             ret = YAMI_INVALID_PARAM;
         m_maxCodedbufSize = 0; // resolution may change, recalculate max codec buffer size when it is requested
-
         break;
     }
     case VideoConfigTypeFrameRate: {

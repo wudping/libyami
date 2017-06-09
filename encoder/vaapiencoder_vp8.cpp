@@ -179,6 +179,8 @@ bool VaapiFlagParameterSVCT::fillLayerFramerate(VAEncMiscParameterFrameRate* fra
     frameRate->framerate |= m_framerates[temporalId].frameRateNum;
 
     frameRate->framerate_flags.bits.temporal_id = temporalId;
+
+    printf("wdp  %s %s %d, frameRate->framerate[%d] = 0x%0x ====\n", __FILE__, __FUNCTION__, __LINE__, frameRate->framerate_flags.bits.temporal_id, frameRate->framerate);
     return true;
 }
 
@@ -196,8 +198,6 @@ bool VaapiFlagParameterSVCT::fillPictureParameter(VAEncPictureParameterBufferVP8
     pictureParameter->pic_flags.bits.copy_buffer_to_golden = 0;
     pictureParameter->pic_flags.bits.copy_buffer_to_alternate = 0;
 
-    //m_havingGld = false;
-    //m_havingAlt = false;
     switch (temporalLayer) {
     case 2:
         if(! m_havingGld)
