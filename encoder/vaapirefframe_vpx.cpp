@@ -325,8 +325,8 @@ void VaapiRefFrameSVCT::fillLayerFramerate(void* dt,
 {
     VAEncMiscParameterFrameRate* frameRate = static_cast<VAEncMiscParameterFrameRate*>(dt);
 
-    frameRate->framerate = m_framerates[temporalId].frameRateNum << 16;
-    frameRate->framerate |= m_framerates[temporalId].frameRateDenom;
+    frameRate->framerate = m_framerates[temporalId].frameRateDenom << 16;
+    frameRate->framerate |= m_framerates[temporalId].frameRateNum;
 
     frameRate->framerate_flags.bits.temporal_id = temporalId;
 
