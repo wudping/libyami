@@ -509,9 +509,8 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
         memset(&m_frameHdr, 0, sizeof(m_frameHdr));
         result = m_parser.ParseFrame(m_buffer,m_frameSize,&m_frameHdr);
         status = getStatus(result);
-        if (status != YAMI_SUCCESS) {
+        if (status != YAMI_SUCCESS) 
             break;
-        }
 
         if (!targetTemporalFrame())
             return YAMI_SUCCESS;

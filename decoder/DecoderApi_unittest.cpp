@@ -256,6 +256,8 @@ TEST_P(DecodeApiTest, Format_Change)
         while (checkOutput(decoder, prevFormat))
             outFrames++;
 
+        //printf("wdp  %s %s %d, outFrames = %d, inFrames = %d ====\n", __FILE__, __FUNCTION__, __LINE__, outFrames, inFrames);
+
         if (status == YAMI_DECODE_FORMAT_CHANGE) {
             //we need ouptut all previous frames
             EXPECT_EQ(inFrames, outFrames);

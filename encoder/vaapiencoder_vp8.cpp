@@ -168,8 +168,8 @@ bool VaapiFlagParameterSVCT::fillLayerBitrate(VAEncMiscParameterRateControl* rat
 {
     rateControl->bits_per_second = m_layerBitRate[temporalId];
     rateControl->rc_flags.bits.temporal_id = temporalId;
-    printf("wdp  %s %s %d, rateControl->bits_per_second[%d] = %d ====\n", __FILE__, __FUNCTION__, __LINE__, temporalId, rateControl->bits_per_second);
-    
+
+    printf("dpwu  %s %s %d, rateControl->bits_per_second[%d] = %d ====\n", __FILE__, __FUNCTION__, __LINE__, temporalId, rateControl->bits_per_second);
     return true;
 }
 
@@ -179,8 +179,8 @@ bool VaapiFlagParameterSVCT::fillLayerFramerate(VAEncMiscParameterFrameRate* fra
     frameRate->framerate |= m_framerates[temporalId].frameRateNum;
 
     frameRate->framerate_flags.bits.temporal_id = temporalId;
+    printf("dpwu  %s %s %d, frameRate->framerate[%d] = 0x%0x ====\n", __FILE__, __FUNCTION__, __LINE__, frameRate->framerate_flags.bits.temporal_id, frameRate->framerate);
 
-    printf("wdp  %s %s %d, frameRate->framerate[%d] = 0x%0x ====\n", __FILE__, __FUNCTION__, __LINE__, frameRate->framerate_flags.bits.temporal_id, frameRate->framerate);
     return true;
 }
 
@@ -202,8 +202,9 @@ bool VaapiFlagParameterSVCT::fillPictureParameter(VAEncPictureParameterBufferVP8
     case 2:
         if(! m_havingGld)
             pictureParameter->ref_flags.bits.no_ref_gf = 1;
-        if(! m_havingAlt)
-            pictureParameter->ref_flags.bits.no_ref_arf = 1;
+        else
+            pictureParameter->ref_flags.bits.second_ref = 2;
+        pictureParameter->ref_flags.bits.no_ref_arf = 1;
         pictureParameter->pic_flags.bits.refresh_alternate_frame = 1;
         m_havingAlt = true;
         break;
@@ -211,6 +212,8 @@ bool VaapiFlagParameterSVCT::fillPictureParameter(VAEncPictureParameterBufferVP8
         pictureParameter->ref_flags.bits.no_ref_arf = 1;
         if(! m_havingGld)
             pictureParameter->ref_flags.bits.no_ref_gf = 1;
+        else
+            pictureParameter->ref_flags.bits.second_ref = 2;
         pictureParameter->pic_flags.bits.refresh_golden_frame = 1;
         m_havingGld = true;
         break;
@@ -224,14 +227,15 @@ bool VaapiFlagParameterSVCT::fillPictureParameter(VAEncPictureParameterBufferVP8
         return false;
     }
 
-    printf("wdp  %s %s %d xxzzzxx, temporalLayer = %d, refresh_last = %d, refresh_golden_frame = %d, refresh_alternate_frame = %d, no_ref_last = %d, no_ref_gf = %d, no_ref_arf = %d ====\n", __FILE__, __FUNCTION__, __LINE__, temporalLayer, 
+    printf("dpwu  %s %s %d xxzzzxx, temporalLayer = %d, refresh_last = %d, refresh_golden_frame = %d, refresh_alternate_frame = %d, no_ref_last = %d, no_ref_gf = %d, no_ref_arf = %d ====\n", __FILE__, __FUNCTION__, __LINE__, temporalLayer, 
         pictureParameter->pic_flags.bits.refresh_last,
         pictureParameter->pic_flags.bits.refresh_golden_frame,
         pictureParameter->pic_flags.bits.refresh_alternate_frame,
         pictureParameter->ref_flags.bits.no_ref_last,
         pictureParameter->ref_flags.bits.no_ref_gf,
         pictureParameter->ref_flags.bits.no_ref_arf);
-
+    
+    pictureParameter->ref_flags.bits.first_ref = 1;
 
     return true;
 }
@@ -482,7 +486,7 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
 
     m_temporalLayerID = m_flagParameter->getTemporalLayer(m_frameCount % keyFramePeriod());
     picture->m_temporalLayerID = m_temporalLayerID;
-    printf("wdp  %s %s %d, m_frameCount = %d, m_temporalLayerID = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameCount, m_temporalLayerID);
+    printf("dpwu  %s %s %d, m_frameCount = %d, m_temporalLayerID = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_frameCount, m_temporalLayerID);
     m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
@@ -496,10 +500,11 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
     if (picture->m_type == VAAPI_PICTURE_I) {
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
     }
+    
     ret = encodePicture(picture);
-    if (ret != YAMI_SUCCESS) {
+    if (ret != YAMI_SUCCESS) 
         return ret;
-    }
+    
     output(picture);
     return YAMI_SUCCESS;
 }
