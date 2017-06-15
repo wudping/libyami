@@ -91,6 +91,7 @@ typedef enum {
 #define VIDEO_PARAMS_QUALITYLEVEL_NONE 0
 #define VIDEO_PARAMS_QUALITYLEVEL_MIN 1
 #define VIDEO_PARAMS_QUALITYLEVEL_MAX 7
+#define TEMPORAL_LAYER_LENGTH_MAX 32
 
 typedef struct VideoEncOutputBuffer {
     uint8_t *data;
@@ -151,6 +152,13 @@ typedef struct VideoFrameRate {
     uint32_t frameRateNum;
     uint32_t frameRateDenom;
 }VideoFrameRate;
+typedef struct VideoTemproalLayers {
+    //framerate of the highest layer is VideoParamsCommon.frameRate
+    //bitrate of the highest layer is VideoParamsCommon.rcParams.bitRate
+    //temporal layer number is length + 1
+    uint8_t length;
+    uint32_t bitRate[TEMPORAL_LAYER_LENGTH_MAX];
+} VideoTemproalLayers;
 
 typedef struct VideoResolution {
     uint32_t width;
@@ -213,6 +221,7 @@ typedef struct VideoParamsCommon {
     uint8_t level;
     VideoResolution resolution;
     VideoFrameRate frameRate;
+    VideoTemproalLayers temporalLayers;
     uint32_t intraPeriod;
     uint32_t ipPeriod;
     uint32_t numRefFrames;
