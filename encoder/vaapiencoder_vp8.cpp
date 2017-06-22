@@ -474,7 +474,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
     }
 
     picParam->coded_buf = picture->getCodedBufferID();
-    picParam->ref_flags.bits.temporal_id = picture->m_temporalID;
+    //picParam->ref_flags.bits.temporal_id = picture->m_temporalID;
 
     picParam->pic_flags.bits.show_frame = 1;
     /*TODO: multi partition*/

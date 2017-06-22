@@ -982,7 +982,7 @@ void VaapiEncoderH264::resetParams ()
     DEBUG("resetParams, ensureCodedBufferSize");
     ensureCodedBufferSize();
 
-    m_temporalLayerNum = m_videoParamCommon.temporalLayers.numLayers + 1;
+    m_temporalLayerNum = m_videoParamCommon.temporalLayers.length + 1;
 
     // enable prefix nal unit for simulcast or svc-t
     if (m_temporalLayerNum > 1 || m_videoParamAVC.priorityId)
@@ -990,6 +990,12 @@ void VaapiEncoderH264::resetParams ()
 
     checkProfileLimitation();
     checkSvcTempLimitaion();
+
+    for (uint32_t i = 0; i < m_videoParamCommon.temporalLayers.length; i++) {
+        uint32_t expTemId = (1 << (m_temporalLayerNum - 1 - i));
+        m_svctFrameRate[i].frameRateDenom = expTemId;
+        m_svctFrameRate[i].frameRateNum = fps();
+    }
 
     if (intraPeriod() == 0) {
         ERROR("intra period must larger than 0");
@@ -1300,9 +1306,6 @@ void VaapiEncoderH264::fill(
 /* Generates additional control parameters */
 bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
 {
-    if (!VaapiEncoderBase::ensureMiscParams(picture))
-        return false;
-
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
 #if VA_CHECK_VERSION(0, 39, 4)
@@ -1316,6 +1319,10 @@ bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
         }
 #endif
     }
+
+    if (!VaapiEncoderBase::ensureMiscParams(picture))
+        return false;
+
     return true;
 }
 

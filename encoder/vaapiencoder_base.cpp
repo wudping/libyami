@@ -75,6 +75,7 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamQualityLevel.level = 0;
     m_vaVideoParamQualityLevel = 0;
     updateMaxOutputBufferCount();
+    memset(m_svctFrameRate, 0, sizeof(m_svctFrameRate));
 }
 
 VaapiEncoderBase::~VaapiEncoderBase()
@@ -454,8 +455,8 @@ void VaapiEncoderBase::fill(VAEncMiscParameterRateControl* rateControl, uint32_t
 #if VA_CHECK_VERSION(0, 39, 4)
     rateControl->rc_flags.bits.temporal_id = temproalID;
 #endif
-    rateControl->bits_per_second = ((temproalID == 0) ?
-        m_videoParamCommon.rcParams.bitRate : m_videoParamCommon.temporalLayers.bitRate[temproalID-1]);
+    //The highest layer's bitrate is bitRate()
+    rateControl->bits_per_second = temproalID == m_videoParamCommon.temporalLayers.length ? bitRate() : m_videoParamCommon.temporalLayers.bitRate[temproalID];
     rateControl->initial_qp =  m_videoParamCommon.rcParams.initQP;
     rateControl->min_qp =  m_videoParamCommon.rcParams.minQP;
     /*FIXME: where to find max_qp */
@@ -471,14 +472,10 @@ void VaapiEncoderBase::fill(VAEncMiscParameterFrameRate* frameRate, uint32_t tem
 #if VA_CHECK_VERSION(0, 39, 4)
     frameRate->framerate_flags.bits.temporal_id = temproalID;
 #endif
-    const VideoFrameRate* rate;
-    if (!temproalID) {
-        rate = &m_videoParamCommon.frameRate;
-    } else {
-        rate = &m_videoParamCommon.temporalLayers.frameRate[temproalID-1];
-    }
-    frameRate->framerate = (rate->frameRateNum<<16) | rate->frameRateDenom;
+    //The highest layer's framerate is fps()
+    frameRate->framerate = temproalID == m_videoParamCommon.temporalLayers.length ? fps() : m_svctFrameRate[temproalID].frameRateNum | (m_svctFrameRate[temproalID].frameRateDenom << 16);
 }
+
 bool VaapiEncoderBase::ensureRateControl(VaapiEncPicture* picture, uint32_t temproalID)
 {
     VAEncMiscParameterRateControl* rateControl = NULL;
@@ -513,14 +510,13 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR ||
             mode == RATE_CONTROL_VBR) {
-        //+1 for layer 0
-        uint32_t layers = m_videoParamCommon.temporalLayers.numLayers + 1;
+        //+1 for the highest layer
+        uint32_t layers = m_videoParamCommon.temporalLayers.length + 1;
         for (uint32_t i = 0; i < layers; i++) {
             if (!ensureRateControl(picture, i))
-            return false;
-
+                return false;
             if (!ensureFrameRate(picture, i))
-            return false;
+                return false;
         }
     }
     return true;
