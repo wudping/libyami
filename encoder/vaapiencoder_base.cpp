@@ -435,6 +435,21 @@ SurfacePtr VaapiEncoderBase::createSurface(const SharedPtr<VideoFrame>& frame)
     return surface;
 }
 
+void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
+{
+    if (m_videoParamsHRD.bufferSize && m_videoParamsHRD.initBufferFullness) {
+        hrd->buffer_size = m_videoParamsHRD.bufferSize;
+        hrd->initial_buffer_fullness = m_videoParamsHRD.initBufferFullness;
+    }
+    else {
+        hrd->initial_buffer_fullness = m_videoParamCommon.rcParams.bitRate;
+        hrd->buffer_size = hrd->initial_buffer_fullness * 2;
+    }
+
+    DEBUG("bitRate: %d, hrd->buffer_size: %d, hrd->initial_buffer_fullness: %d",
+        m_videoParamCommon.rcParams.bitRate, hrd->buffer_size,hrd->initial_buffer_fullness);
+}
+
 bool VaapiEncoderBase::fillHrd(VaapiEncPicture* picture) const
 {
     VAEncMiscParameterHRD* hrd = NULL;
@@ -480,6 +495,7 @@ void VaapiEncoderBase::fill(VAEncMiscParameterFrameRate* frameRate, uint32_t tem
 #endif
     //The highest layer's framerate is fps()
     frameRate->framerate = temproalID == m_videoParamCommon.temporalLayers.length ? fps() : m_svctFrameRate[temproalID].frameRateNum | (m_svctFrameRate[temproalID].frameRateDenom << 16);
+    printf("dpw %s %s %d, temproalID = %d, length = %d, frameRate->framerate = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, temproalID, m_videoParamCommon.temporalLayers.length, frameRate->framerate);
 }
 
 bool VaapiEncoderBase::ensureRateControl(VaapiEncPicture* picture, uint32_t temproalID)

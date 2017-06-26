@@ -993,8 +993,12 @@ void VaapiEncoderH264::resetParams ()
 
     for (uint32_t i = 0; i < m_videoParamCommon.temporalLayers.length; i++) {
         uint32_t expTemId = (1 << (m_temporalLayerNum - 1 - i));
-        m_svctFrameRate[i].frameRateDenom = expTemId;
-        m_svctFrameRate[i].frameRateNum = fps();
+        if(!(fps() % expTemId))
+            m_svctFrameRate[i].frameRateNum = fps() / expTemId;
+        else{
+            m_svctFrameRate[i].frameRateDenom = expTemId;
+            m_svctFrameRate[i].frameRateNum = fps();
+        }
     }
 
     if (intraPeriod() == 0) {
@@ -1303,6 +1307,35 @@ void VaapiEncoderH264::fill(
 }
 #endif
 
+void VaapiEncoderH264::fill(VAEncMiscParameterRateControl* rateControl,
+                            uint32_t temporalId) const
+{
+    VaapiEncoderBase::fill(rateControl);
+
+    //rateControl->bits_per_second
+     //   = m_videoParamCommon.rcParams.layerBitRate[temporalId];
+    rateControl->bits_per_second = temporalId == m_videoParamCommon.temporalLayers.length ? bitRate() : m_videoParamCommon.temporalLayers.bitRate[temporalId];
+#if VA_CHECK_VERSION(0, 39, 4)
+    rateControl->rc_flags.bits.temporal_id = temporalId;
+#endif
+    printf("dpw %s %s %d, temproalID = %d, length = %d, bits_per_second = %d ====\n", __FILE__, __FUNCTION__, __LINE__, temporalId, m_videoParamCommon.temporalLayers.length, rateControl->bits_per_second);    
+}
+
+void VaapiEncoderH264::fill(VAEncMiscParameterFrameRate* frameRate,
+                            uint32_t temporalId) const
+{
+    uint32_t expTemId = (1 << (m_temporalLayerNum - 1 - temporalId));
+    if (fps() % expTemId == 0)
+        frameRate->framerate = fps() / expTemId;
+    else
+        frameRate->framerate = (expTemId << 16 | fps());
+
+#if VA_CHECK_VERSION(0, 39, 4)
+    frameRate->framerate_flags.bits.temporal_id = temporalId;
+#endif
+}
+
+#if (0)
 /* Generates additional control parameters */
 bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
 {
@@ -1334,6 +1367,49 @@ bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
         }
     }
 
+    return true;
+}
+#endif
+
+/* Generates additional control parameters */
+bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
+{
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+        return false;
+    if (hrd)
+        VaapiEncoderBase::fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+
+    VideoRateControl mode = rateControlMode();
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
+#if VA_CHECK_VERSION(0, 39, 4)
+        if (m_isSvcT) {
+            VAEncMiscParameterTemporalLayerStructure* layerParam = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeTemporalLayerStructure,
+                                  layerParam))
+                return false;
+            if (layerParam)
+                fill(layerParam);
+        }
+#endif
+        for (uint32_t i = 0; i < m_temporalLayerNum; i++) {
+            VAEncMiscParameterRateControl* rateControl = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeRateControl,
+                                  rateControl))
+                return false;
+            if (rateControl)
+                fill(rateControl, i);
+
+            VAEncMiscParameterFrameRate* frameRate = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
+                return false;
+            if (frameRate)
+                fill(frameRate, i);
+        }
+    }
     return true;
 }
 
