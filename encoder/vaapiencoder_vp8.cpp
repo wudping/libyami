@@ -97,6 +97,7 @@ public:
 
 void Vp8EncoderNormal::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer) const
 {
+    printf("dpw %s %s %d, ====\n", __FILE__, __FUNCTION__, __LINE__);
     refFlags.refresh_last = 1;
     refFlags.refresh_golden_frame = 0;
     refFlags.copy_buffer_to_golden = 1;
@@ -193,6 +194,7 @@ void VaapiEncoderVP8::resetParams()
         m_svctFrameRate[i].frameRateDenom = expTemId;
         m_svctFrameRate[i].frameRateNum = fps();
     }
+    printf("dpw %s %s %d, layerNum = %d ====\n", __FILE__, __FUNCTION__, __LINE__, layerNum);
 
     if (layerNum > 1) {
         m_encoder.reset(new Vp8EncoderSvct(layerNum));

@@ -1306,6 +1306,12 @@ void VaapiEncoderH264::fill(
 /* Generates additional control parameters */
 bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
 {
+    if (!fillHrd(picture))
+        return false;
+
+    if (!fillQualityLevel(picture))
+        return false;
+
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
 #if VA_CHECK_VERSION(0, 39, 4)
@@ -1318,10 +1324,15 @@ bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
                 fill(layerParam);
         }
 #endif
+        //+1 for the highest layer
+        uint32_t layers = m_videoParamCommon.temporalLayers.length + 1;
+        for (uint32_t i = 0; i < layers; i++) {
+            if (!ensureRateControl(picture, i))
+                return false;
+            if (!ensureFrameRate(picture, i))
+                return false;
+        }
     }
-
-    if (!VaapiEncoderBase::ensureMiscParams(picture))
-        return false;
 
     return true;
 }

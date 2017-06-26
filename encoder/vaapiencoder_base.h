@@ -99,7 +99,7 @@ protected:
     virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false) = 0;
 
     //rate control related things
-    void fill(VAEncMiscParameterHRD*) const ;
+    bool fillHrd(VaapiEncPicture*) const ;
     void fill(VAEncMiscParameterRateControl*, uint32_t temproalID = 0) const ;
     void fill(VAEncMiscParameterFrameRate*, uint32_t temproalID = 0) const;
     virtual bool ensureMiscParams(VaapiEncPicture*);

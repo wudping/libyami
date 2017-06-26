@@ -435,8 +435,12 @@ SurfacePtr VaapiEncoderBase::createSurface(const SharedPtr<VideoFrame>& frame)
     return surface;
 }
 
-void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
+bool VaapiEncoderBase::fillHrd(VaapiEncPicture* picture) const
 {
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd) && (!hrd))
+        return false;
+
     if (m_videoParamsHRD.bufferSize && m_videoParamsHRD.initBufferFullness) {
         hrd->buffer_size = m_videoParamsHRD.bufferSize;
         hrd->initial_buffer_fullness = m_videoParamsHRD.initBufferFullness;
@@ -448,6 +452,8 @@ void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
 
     DEBUG("bitRate: %d, hrd->buffer_size: %d, hrd->initial_buffer_fullness: %d",
         m_videoParamCommon.rcParams.bitRate, hrd->buffer_size,hrd->initial_buffer_fullness);
+
+    return true;
 }
 
 void VaapiEncoderBase::fill(VAEncMiscParameterRateControl* rateControl, uint32_t temproalID) const
@@ -498,11 +504,8 @@ bool VaapiEncoderBase::ensureFrameRate(VaapiEncPicture* picture, uint32_t tempro
 /* Generates additional control parameters */
 bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 {
-    VAEncMiscParameterHRD* hrd = NULL;
-    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+    if (!fillHrd(picture))
         return false;
-    if (hrd)
-        fill(hrd);
 
     if (!fillQualityLevel(picture))
         return false;
