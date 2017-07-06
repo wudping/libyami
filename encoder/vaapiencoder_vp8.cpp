@@ -525,16 +525,17 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
                            const SurfacePtr& surface) const
 {
     picParam->reconstructed_frame = surface->getID();
+    picParam->ref_last_frame = VA_INVALID_SURFACE;
+    picParam->ref_gf_frame = VA_INVALID_SURFACE;
+    picParam->ref_arf_frame = VA_INVALID_SURFACE;
     if (picture->m_type == VAAPI_PICTURE_P) {
         picParam->pic_flags.bits.frame_type = 1;
-        picParam->ref_arf_frame = m_altFrame->getID();
+        m_flagParameter->fillPictureParameter(picParam, m_temporalLayerID);
+        if (!picParam->ref_flags.bits.no_ref_arf)
+            picParam->ref_arf_frame = m_altFrame->getID();
         picParam->ref_gf_frame = m_goldenFrame->getID();
         picParam->ref_last_frame = m_lastFrame->getID();
-        m_flagParameter->fillPictureParameter(picParam, m_temporalLayerID);
     } else {
-        picParam->ref_last_frame = VA_INVALID_SURFACE;
-        picParam->ref_gf_frame = VA_INVALID_SURFACE;
-        picParam->ref_arf_frame = VA_INVALID_SURFACE;
         m_flagParameter->resetRefNum();
     }
 
