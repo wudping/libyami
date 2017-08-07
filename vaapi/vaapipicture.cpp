@@ -72,7 +72,6 @@ bool VaapiPicture::render()
 
 bool VaapiPicture::render_265_slice()
 {
-    printf("dpwu  %s %s %d, slice_dt_size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, slice_dt_size);
     VAStatus vaSts = VA_STATUS_SUCCESS;
     VABufferID sliceParamBufferId[128];
     VABufferID sliceDataID = VA_INVALID_ID;
@@ -86,6 +85,8 @@ bool VaapiPicture::render_265_slice()
         slice_index, //because slice_index has increased.
         sliceArray,
         sliceParamBufferId);
+    
+    printf("dpwu  %s %s %d, slice_dt_size = %d, slice_index = %d ====\n", __FILE__, __FUNCTION__, __LINE__, slice_dt_size, slice_index);
 #if (0)    
     for(int32_t i = 0; i < slice_index; i++){
         printf("dpwu  %s %s %d, sliceParamBufferId[%d] = 0x%x,  ====\n", __FILE__, __FUNCTION__, __LINE__, i, sliceParamBufferId[i]);
