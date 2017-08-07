@@ -38,6 +38,11 @@ using std::placeholders::_1;
 using std::ref;
 
 using namespace YamiParser::H265;
+uint8_t slice_dt[10 * 1024 * 1024];
+uint32_t data_index = 0;
+uint32_t slice_dt_size = 0;
+VASliceParameterBufferHEVC sliceArray[128];
+int32_t slice_index = 0;
 
 bool isIdr(const NalUnit* const nalu)
 {
@@ -870,6 +875,92 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
 {
     const SliceHeader* slice = theSlice;
     VASliceParameterBufferHEVC* sliceParam;
+    printf("dpwu  %s %s %d, nalu->m_size = %d, sizeof(VASliceParameterBufferHEVC) = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, nalu->m_size, sizeof(VASliceParameterBufferHEVC));
+    uint8_t dt[3];
+    dt[0] = 0x00;
+    dt[1] = 0x00;
+    dt[2] = 0x01;
+
+    sliceParam = &(sliceArray[slice_index]);
+    slice_index++;
+    assert(slice_index < 128);
+    sliceParam->slice_data_size = nalu->m_size + 3;
+    sliceParam->slice_data_offset = data_index;
+    sliceParam->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
+    memcpy(&(slice_dt[data_index]), dt, 3);
+    data_index += 3;
+    memcpy(&(slice_dt[data_index]), nalu->m_data, nalu->m_size);
+    data_index += nalu->m_size;
+    slice_dt_size = data_index;
+
+    /*
+    if(3 == slice_index){
+        if (!picture->newSlice(sliceParam, slice_dt, data_index))
+            return false;
+    }
+    else{
+        if (!picture->newSlice(sliceParam, NULL, nalu->m_size + 3))
+            return false;
+    }
+    */
+    sliceParam->slice_data_byte_offset =
+        slice->getSliceDataByteOffset() + 3;
+    sliceParam->slice_segment_address = slice->slice_segment_address;
+
+#define FILL_LONG(f) sliceParam->LongSliceFlags.fields.f = slice->f
+#define FILL_LONG_SLICE(f) sliceParam->LongSliceFlags.fields.slice_##f = slice->f
+    //how to fill this
+    //LastSliceOfPic
+    FILL_LONG(dependent_slice_segment_flag);
+
+    //follow spec
+    if (slice->dependent_slice_segment_flag) {
+        slice = m_prevSlice.get();
+    }
+
+    if (!fillReferenceIndex(sliceParam, slice))
+        return false;
+
+    sliceParam->LongSliceFlags.fields.slice_type = slice->slice_type;
+    sliceParam->LongSliceFlags.fields.color_plane_id = slice->colour_plane_id;
+    FILL_LONG_SLICE(sao_luma_flag);
+    FILL_LONG_SLICE(sao_chroma_flag);
+    FILL_LONG(mvd_l1_zero_flag);
+    FILL_LONG(cabac_init_flag);
+    FILL_LONG_SLICE(temporal_mvp_enabled_flag);
+
+    if (slice->deblocking_filter_override_flag)
+        FILL_LONG_SLICE(deblocking_filter_disabled_flag);
+    else
+        sliceParam->LongSliceFlags.fields.slice_deblocking_filter_disabled_flag=
+          slice->pps->pps_deblocking_filter_disabled_flag;
+    FILL_LONG(collocated_from_l0_flag);
+    FILL_LONG_SLICE(loop_filter_across_slices_enabled_flag);
+
+#define FILL(f) sliceParam->f = slice->f
+#define FILL_SLICE(f) sliceParam->slice_##f = slice->f
+    FILL(collocated_ref_idx);
+    /* following fields fill in fillReference
+       num_ref_idx_l0_active_minus1
+       num_ref_idx_l1_active_minus1*/
+
+    FILL_SLICE(qp_delta);
+    FILL_SLICE(cb_qp_offset);
+    FILL_SLICE(cr_qp_offset);
+    FILL_SLICE(beta_offset_div2);
+    FILL_SLICE(tc_offset_div2);
+    if (!fillPredWeightTable(sliceParam, slice))
+        return false;
+    FILL(five_minus_max_num_merge_cand);
+    return true;
+}
+
+#if (0)
+bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
+        const SliceHeader* const theSlice, const NalUnit* const nalu)
+{
+    const SliceHeader* slice = theSlice;
+    VASliceParameterBufferHEVC* sliceParam;
     if (!picture->newSlice(sliceParam, nalu->m_data, nalu->m_size))
         return false;
     sliceParam->slice_data_byte_offset =
@@ -923,6 +1014,8 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     FILL(five_minus_max_num_merge_cand);
     return true;
 }
+#endif
+
 
 #define CHECK(v, expect)                                                      \
     do {                                                                      \

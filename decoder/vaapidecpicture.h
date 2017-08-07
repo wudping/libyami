@@ -16,6 +16,7 @@
 #ifndef vaapidecpicture_h
 #define vaapidecpicture_h
 
+#include <stdio.h>
 #include "vaapi/vaapipicture.h"
 
 namespace YamiMediaCodec{

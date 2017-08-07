@@ -17,7 +17,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
+#include <stdio.h>
 #include "vaapipicture.h"
 
 #include "common/log.h"
@@ -28,6 +28,13 @@
 #include "VaapiUtils.h"
 
 namespace YamiMediaCodec{
+
+extern uint8_t slice_dt[10 * 1024 * 1024];
+extern uint32_t data_index;
+extern uint32_t slice_dt_size;
+extern VASliceParameterBufferHEVC sliceArray[128];
+extern int32_t slice_index;
+
 VaapiPicture::VaapiPicture(const ContextPtr& context,
     const SurfacePtr& surface, int64_t timeStamp)
     : m_display(context->getDisplay())
@@ -62,6 +69,60 @@ bool VaapiPicture::render()
         return false;
     return ret;
 }
+
+bool VaapiPicture::render_265_slice()
+{
+    printf("dpwu  %s %s %d, slice_dt_size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, slice_dt_size);
+    VAStatus vaSts = VA_STATUS_SUCCESS;
+    VABufferID sliceParamBufferId[128];
+    VABufferID sliceDataID = VA_INVALID_ID;
+    for(int i = 0; i < 128; i++){
+        sliceParamBufferId[i] = VA_INVALID_ID;
+    }
+    vaSts = vaCreateBuffer(m_display->getID(),
+        m_context->getID(),
+        VASliceParameterBufferType,
+        sizeof(VASliceParameterBufferHEVC),
+        slice_index, //because slice_index has increased.
+        sliceArray,
+        sliceParamBufferId);
+#if (0)    
+    for(int32_t i = 0; i < slice_index; i++){
+        printf("dpwu  %s %s %d, sliceParamBufferId[%d] = 0x%x,  ====\n", __FILE__, __FUNCTION__, __LINE__, i, sliceParamBufferId[i]);
+    }
+#endif
+
+    if (!checkVaapiStatus(vaSts, "vaCreateBuffer")){
+        return false;
+    }
+    vaSts = vaCreateBuffer(m_display->getID(), m_context->getID(),
+        VASliceDataBufferType, slice_dt_size, 1, slice_dt, &sliceDataID);
+    if (!checkVaapiStatus(vaSts, "vaCreateBuffer")){
+        return false;
+    }
+
+    vaSts = vaRenderPicture(m_display->getID(), m_context->getID(), sliceParamBufferId, 1);
+    if (!checkVaapiStatus(vaSts, "vaRenderPicture failed")){
+        return false;
+    }
+    vaSts = vaRenderPicture(m_display->getID(), m_context->getID(), &sliceDataID, 1);
+    if (!checkVaapiStatus(vaSts, "vaRenderPicture failed")){
+        return false;
+    }
+
+    for(int32_t i = 0; i < slice_index; i++){
+        printf("dpwu  %s %s %d, sliceParamBufferId[%d] = 0x%x,  ====\n", __FILE__, __FUNCTION__, __LINE__, i, sliceParamBufferId[i]);
+        if(sliceParamBufferId[i] != VA_INVALID_ID)
+            checkVaapiStatus(vaDestroyBuffer(m_display->getID(), sliceParamBufferId[i]), "vaDestroyBuffer");
+    }
+    checkVaapiStatus(vaDestroyBuffer(m_display->getID(), sliceDataID), "vaDestroyBuffer");
+    slice_index = 0;
+    data_index = 0;
+    slice_dt_size = 0;
+
+    return true;
+}
+
 
 bool VaapiPicture::render(BufObjectPtr& buffer)
 {

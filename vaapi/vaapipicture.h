@@ -54,6 +54,7 @@ public:
     inline SurfacePtr getSurface() const;
     inline void setSurface(const SurfacePtr&);
     bool sync();
+    bool render_265_slice();
 
     int64_t                 m_timeStamp;
     VaapiPictureType        m_type;

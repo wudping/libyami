@@ -45,7 +45,8 @@ bool VaapiDecPicture::doRender()
     RENDER_OBJECT(m_iqMatrix);
     RENDER_OBJECT(m_bitPlane);
     RENDER_OBJECT(m_hufTable);
-    RENDER_OBJECT(m_slices);
+    //RENDER_OBJECT(m_slices);
+    render_265_slice();
     return true;
 }
 }
