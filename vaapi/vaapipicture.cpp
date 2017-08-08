@@ -32,7 +32,7 @@ namespace YamiMediaCodec{
 extern uint8_t slice_dt[10 * 1024 * 1024];
 extern uint32_t data_index;
 //extern uint32_t slice_dt_size;
-extern VASliceParameterBufferHEVC sliceArray[128];
+extern VASliceParameterBufferHEVC sliceArray[MAX_SLICE_NUM];
 extern int32_t slice_index;
 
 VaapiPicture::VaapiPicture(const ContextPtr& context,
@@ -73,9 +73,9 @@ bool VaapiPicture::render()
 bool VaapiPicture::render_265_slice()
 {
     VAStatus vaSts = VA_STATUS_SUCCESS;
-    VABufferID sliceParamBufferId[128];
+    VABufferID sliceParamBufferId[MAX_SLICE_NUM];
     VABufferID sliceDataID = VA_INVALID_ID;
-    for(int i = 0; i < 128; i++){
+    for(int i = 0; i < MAX_SLICE_NUM; i++){
         sliceParamBufferId[i] = VA_INVALID_ID;
     }
     vaSts = vaCreateBuffer(m_display->getID(),
@@ -112,7 +112,7 @@ bool VaapiPicture::render_265_slice()
     }
 
     for(int32_t i = 0; i < slice_index; i++){
-        printf("dpwu  %s %s %d, sliceParamBufferId[%d] = 0x%x,  ====\n", __FILE__, __FUNCTION__, __LINE__, i, sliceParamBufferId[i]);
+        //printf("dpwu  %s %s %d, sliceParamBufferId[%d] = 0x%x,  ====\n", __FILE__, __FUNCTION__, __LINE__, i, sliceParamBufferId[i]);
         if(sliceParamBufferId[i] != VA_INVALID_ID)
             checkVaapiStatus(vaDestroyBuffer(m_display->getID(), sliceParamBufferId[i]), "vaDestroyBuffer");
     }

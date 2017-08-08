@@ -28,6 +28,8 @@
 
 namespace YamiMediaCodec{
 
+#define MAX_SLICE_NUM  512
+
 typedef enum
 {
     VAAPI_PICTURE_INVALID = 0x0000,

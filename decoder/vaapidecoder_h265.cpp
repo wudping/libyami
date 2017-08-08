@@ -41,7 +41,7 @@ using namespace YamiParser::H265;
 uint8_t slice_dt[10 * 1024 * 1024];
 uint32_t data_index = 0;
 //uint32_t slice_dt_size = 0;
-VASliceParameterBufferHEVC sliceArray[128];
+VASliceParameterBufferHEVC sliceArray[MAX_SLICE_NUM];
 int32_t slice_index = 0;
 
 bool isIdr(const NalUnit* const nalu)
@@ -875,7 +875,7 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
 {
     const SliceHeader* slice = theSlice;
     VASliceParameterBufferHEVC* sliceParam;
-    printf("dpwu  %s %s %d, nalu->m_size = %d, sizeof(VASliceParameterBufferHEVC) = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, nalu->m_size, sizeof(VASliceParameterBufferHEVC));
+    //printf("dpwu  %s %s %d, nalu->m_size = %d, sizeof(VASliceParameterBufferHEVC) = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, nalu->m_size, sizeof(VASliceParameterBufferHEVC));
     uint8_t dt[3];
     dt[0] = 0x00;
     dt[1] = 0x00;
@@ -884,7 +884,7 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     sliceParam = &(sliceArray[slice_index]);
     memset(sliceParam, 0, sizeof(VASliceParameterBufferHEVC));
     slice_index++;
-    assert(slice_index < 128);
+    assert(slice_index < MAX_SLICE_NUM);
     sliceParam->slice_data_size = nalu->m_size + 3;
     sliceParam->slice_data_offset = data_index;
     sliceParam->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
