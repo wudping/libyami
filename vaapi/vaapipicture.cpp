@@ -31,7 +31,7 @@ namespace YamiMediaCodec{
 
 extern uint8_t slice_dt[10 * 1024 * 1024];
 extern uint32_t data_index;
-extern uint32_t slice_dt_size;
+//extern uint32_t slice_dt_size;
 extern VASliceParameterBufferHEVC sliceArray[128];
 extern int32_t slice_index;
 
@@ -86,7 +86,7 @@ bool VaapiPicture::render_265_slice()
         sliceArray,
         sliceParamBufferId);
     
-    printf("dpwu  %s %s %d, slice_dt_size = %d, slice_index = %d ====\n", __FILE__, __FUNCTION__, __LINE__, slice_dt_size, slice_index);
+    //printf("dpwu  %s %s %d, slice_dt_size = %d, slice_index = %d ====\n", __FILE__, __FUNCTION__, __LINE__, slice_dt_size, slice_index);
 #if (0)    
     for(int32_t i = 0; i < slice_index; i++){
         printf("dpwu  %s %s %d, sliceParamBufferId[%d] = 0x%x,  ====\n", __FILE__, __FUNCTION__, __LINE__, i, sliceParamBufferId[i]);
@@ -97,7 +97,7 @@ bool VaapiPicture::render_265_slice()
         return false;
     }
     vaSts = vaCreateBuffer(m_display->getID(), m_context->getID(),
-        VASliceDataBufferType, slice_dt_size, 1, slice_dt, &sliceDataID);
+        VASliceDataBufferType, data_index, 1, slice_dt, &sliceDataID);
     if (!checkVaapiStatus(vaSts, "vaCreateBuffer")){
         return false;
     }
@@ -119,7 +119,7 @@ bool VaapiPicture::render_265_slice()
     checkVaapiStatus(vaDestroyBuffer(m_display->getID(), sliceDataID), "vaDestroyBuffer");
     slice_index = 0;
     data_index = 0;
-    slice_dt_size = 0;
+    //slice_dt_size = 0;
 
     return true;
 }

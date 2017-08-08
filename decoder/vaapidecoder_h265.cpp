@@ -40,7 +40,7 @@ using std::ref;
 using namespace YamiParser::H265;
 uint8_t slice_dt[10 * 1024 * 1024];
 uint32_t data_index = 0;
-uint32_t slice_dt_size = 0;
+//uint32_t slice_dt_size = 0;
 VASliceParameterBufferHEVC sliceArray[128];
 int32_t slice_index = 0;
 
@@ -882,6 +882,7 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     dt[2] = 0x01;
 
     sliceParam = &(sliceArray[slice_index]);
+    memset(sliceParam, 0, sizeof(VASliceParameterBufferHEVC));
     slice_index++;
     assert(slice_index < 128);
     sliceParam->slice_data_size = nalu->m_size + 3;
@@ -891,7 +892,7 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     data_index += 3;
     memcpy(&(slice_dt[data_index]), nalu->m_data, nalu->m_size);
     data_index += nalu->m_size;
-    slice_dt_size = data_index;
+    //slice_dt_size = data_index;
 
     /*
     if(3 == slice_index){
