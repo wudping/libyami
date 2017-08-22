@@ -39,21 +39,23 @@ public:
     virtual void getLayerIds(LayerIDs& ids) const;
     virtual uint8_t getTemporalLayer(uint32_t frameNum) const;
     virtual void getLayerFrameRates(LayerFrameRates& frameRates) const;
+    virtual uint8_t getMiniRefFrameNum() const;
 
 private:
     void calculateFramerate(const VideoFrameRate& frameRate);
+    void checkLayerIDs() const;
 
 protected:
     uint8_t m_layerLen;
     LayerIDs m_ids;
     LayerFrameRates m_frameRates;
     uint8_t m_idPeriod;
+    uint8_t m_miniRefFrameNum;
 };
 
 class Vp8LayerID : public TemporalLayerID {
 public:
     Vp8LayerID(const VideoFrameRate& frameRate, const VideoTemproalLayerIDs& layerIDs, uint8_t layerIndex);
-
 public:
     static const uint8_t m_vp8TempIds[VP8_MAX_TEMPORAL_LAYER_NUM][VP8_MIN_TEMPORAL_GOP];
 };
@@ -61,6 +63,9 @@ public:
 class AvcLayerID : public TemporalLayerID {
 public:
     AvcLayerID(const VideoFrameRate& frameRate, const VideoTemproalLayerIDs& layerIDs, uint8_t layerIndex);
+
+private:
+    void calculateMiniRefNum();
 
 public:
     static const uint8_t m_avcTempIds[H264_MAX_TEMPORAL_LAYER_NUM][H264_MIN_TEMPORAL_GOP];

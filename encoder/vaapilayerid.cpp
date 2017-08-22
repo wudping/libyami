@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-#include "vaapilayerid.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <algorithm>
+#include "vaapilayerid.h"
+#include "common/log.h"
 
 namespace YamiMediaCodec {
 
@@ -34,6 +36,7 @@ const uint8_t AvcLayerID::m_avcTempIds[H264_MAX_TEMPORAL_LAYER_NUM][H264_MIN_TEM
 
 TemporalLayerID::TemporalLayerID(const VideoFrameRate& frameRate, const VideoTemproalLayerIDs& layerIDs, uint8_t layerIndex, const uint8_t* defaultIDs, uint8_t idPeriod)
 {
+    m_miniRefFrameNum = 0;
     m_layerLen = layerIndex + 1;
     m_idPeriod = 0;
     if (layerIDs.numIDs) {
@@ -64,6 +67,7 @@ TemporalLayerID::TemporalLayerID(const VideoFrameRate& frameRate, const VideoTem
     }
 
     assert(m_idPeriod);
+    checkLayerIDs();
     calculateFramerate(frameRate);
 }
 
@@ -114,6 +118,25 @@ void TemporalLayerID::calculateFramerate(const VideoFrameRate& frameRate)
     return;
 }
 
+uint8_t TemporalLayerID::getMiniRefFrameNum() const
+{
+    return m_miniRefFrameNum;
+}
+
+void TemporalLayerID::checkLayerIDs() const
+{
+    LayerIDs tempIDs = m_ids;
+    std::sort(tempIDs.begin(), tempIDs.end());
+    assert(0 == tempIDs[0]);
+    for (uint8_t i = 1; i < m_idPeriod; i++) {
+        if (tempIDs[i] - tempIDs[i - 1] > 1) {
+            ERROR("layer IDs illegal, no layer between %d and %d.\n", tempIDs[i - 1], tempIDs[i]);
+            assert(false);
+        }
+    }
+    return;
+}
+
 Vp8LayerID::Vp8LayerID(const VideoFrameRate& frameRate, const VideoTemproalLayerIDs& layerIDs, uint8_t layerIndex)
     : TemporalLayerID(frameRate, layerIDs, layerIndex, m_vp8TempIds[layerIndex], VP8_MIN_TEMPORAL_GOP)
 {
@@ -122,5 +145,26 @@ Vp8LayerID::Vp8LayerID(const VideoFrameRate& frameRate, const VideoTemproalLayer
 AvcLayerID::AvcLayerID(const VideoFrameRate& frameRate, const VideoTemproalLayerIDs& layerIDs, uint8_t layerIndex)
     : TemporalLayerID(frameRate, layerIDs, layerIndex, m_avcTempIds[layerIndex], H264_MIN_TEMPORAL_GOP)
 {
+    calculateMiniRefNum();
+}
+
+void AvcLayerID::calculateMiniRefNum()
+{
+    uint8_t max = 0;
+    const uint8_t LAYER0 = 0;
+    //The current frame of layer0 should be in the refList
+    uint8_t refFrameNum = 1;
+    for (uint8_t i = 0; i < m_idPeriod; i++) {
+        if (LAYER0 == m_ids[i]) {
+            if (max < refFrameNum)
+                max = refFrameNum;
+            //The current frame of layer0 should be in the refList
+            refFrameNum = 1;
+        }
+        else {
+            refFrameNum++;
+        }
+    }
+    m_miniRefFrameNum = max > refFrameNum ? max : refFrameNum;
 }
 }
