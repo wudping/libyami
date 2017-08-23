@@ -507,7 +507,7 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
     if (!fillQualityLevel(picture))
         return false;
 
-    VideoRateControl mode = rateControlMode();
+    VideoRateControl mode = RATE_CONTROL_VBR;//rateControlMode();
     if (mode == RATE_CONTROL_CBR ||
             mode == RATE_CONTROL_VBR) {
         //+1 for the highest layer

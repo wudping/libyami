@@ -1411,7 +1411,7 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     /* Fps of hevc is equal to  vui_time_scale/vui_time_scale. It is differenet from h264 */
     seqParam->vui_time_scale = frameRateNum();
     seqParam->vui_fields.bits.aspect_ratio_info_present_flag = 1;
-    seqParam->aspect_ratio_idc = 1; 
+    seqParam->aspect_ratio_idc = 1;
 
     return true;
 }
