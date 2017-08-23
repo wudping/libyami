@@ -752,6 +752,8 @@ bool VaapiEncoderBase::mapQualityLevel()
         return false;
     }
 
+    printf("dpwu  %s %s %d, attrib.value = %d ====\n", __FILE__, __FUNCTION__, __LINE__, attrib.value);
+
     if (!mapToRange(qualityLevel,
             0, attrib.value,
             m_videoParamQualityLevel.level,

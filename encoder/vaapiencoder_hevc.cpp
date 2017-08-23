@@ -486,6 +486,7 @@ private:
         /* scaling_list_enabled_flag */
         bitwriter->writeBits(0, 1);
         /* amp_enabled_flag */
+        printf("dpwu  %s %s %d, seq->seq_fields.bits.amp_enabled_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.amp_enabled_flag);
         bitwriter->writeBits(seq->seq_fields.bits.amp_enabled_flag, 1);
         /* sample_adaptive_offset_enabled_flag */
         bitwriter->writeBits(seq->seq_fields.bits.sample_adaptive_offset_enabled_flag, 1);
@@ -1353,9 +1354,9 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
 
     seqParam->general_profile_idc = m_profileIdc;
     seqParam->general_level_idc = level();
-    seqParam->general_tier_flag = 0;
+    seqParam->general_tier_flag = 1;//0;
     seqParam->intra_period = intraPeriod();
-    seqParam->intra_idr_period = seqParam->intra_period;
+    seqParam->intra_idr_period = 0; //seqParam->intra_period;
     seqParam->ip_period = 1 + m_numBFrames;
     seqParam->bits_per_second = bitRate();
 
@@ -1376,7 +1377,7 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     /* strong_intra_smoothing_enabled_flag. Not use the bi-linear interpolation */
     seqParam->seq_fields.bits.strong_intra_smoothing_enabled_flag = 0;
     /* amp_enabled_flag(nLx2N or nRx2N). This is not supported */
-    seqParam->seq_fields.bits.amp_enabled_flag = 1;
+    seqParam->seq_fields.bits.amp_enabled_flag = 0;//;
     /* sample_adaptive_offset_enabled_flag. Unsupported */
     seqParam->seq_fields.bits.sample_adaptive_offset_enabled_flag = 0;
     /* pcm_enabled_flag */
@@ -1384,7 +1385,7 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     /* pcm_loop_filter_disabled_flag */
     seqParam->seq_fields.bits.pcm_loop_filter_disabled_flag = 1;
     /* sps_temporal_mvp_enabled_flag. Enabled */
-    seqParam->seq_fields.bits.sps_temporal_mvp_enabled_flag = 0;
+    seqParam->seq_fields.bits.sps_temporal_mvp_enabled_flag = 1;
 
     seqParam->log2_min_luma_coding_block_size_minus3 = log2(m_ctbSize)  -3;
     seqParam->log2_diff_max_min_luma_coding_block_size = log2(m_cuSize) - log2(m_ctbSize);
@@ -1398,17 +1399,19 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     seqParam->max_transform_hierarchy_depth_intra = 2;
 
     /* The PCM fields can be ignored as PCM is disabled */
-    seqParam->pcm_sample_bit_depth_luma_minus1 = 7;
-    seqParam->pcm_sample_bit_depth_chroma_minus1 = 7;
+    seqParam->pcm_sample_bit_depth_luma_minus1 = 0;
+    seqParam->pcm_sample_bit_depth_chroma_minus1 = 0;
     seqParam->log2_min_pcm_luma_coding_block_size_minus3 = 0;
     seqParam->log2_max_pcm_luma_coding_block_size_minus3 = 0;
 
     /* VUI parameters are always set for timing_info (framerate/bitrate) */
-    seqParam->vui_parameters_present_flag = TRUE;
+    seqParam->vui_parameters_present_flag = FALSE;
     seqParam->vui_fields.bits.vui_timing_info_present_flag = TRUE;
     seqParam->vui_num_units_in_tick = frameRateDenom();
     /* Fps of hevc is equal to  vui_time_scale/vui_time_scale. It is differenet from h264 */
     seqParam->vui_time_scale = frameRateNum();
+    seqParam->vui_fields.bits.aspect_ratio_info_present_flag = 1;
+    seqParam->aspect_ratio_idc = 1; 
 
     return true;
 }
@@ -1420,7 +1423,8 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
     uint32_t i = 0;
 
     picParam->decoded_curr_pic.picture_id = surface->getID();
-    picParam->decoded_curr_pic.flags = VA_PICTURE_HEVC_RPS_LT_CURR;
+    picParam->decoded_curr_pic.flags = 0; //VA_PICTURE_HEVC_RPS_LT_CURR;
+    printf("dpwu  %s %s %d, picParam->decoded_curr_pic.flags = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picParam->decoded_curr_pic.flags);
     picParam->decoded_curr_pic.pic_order_cnt = picture->m_poc;
 
     if (picture->m_type != VAAPI_PICTURE_I) {
@@ -1442,6 +1446,8 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
     picParam->last_picture = 0;  /* means last encoding picture */
 
     picParam->pic_init_qp = initQP();
+    printf("dpwu  %s %s %d, picParam->pic_init_qp = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picParam->pic_init_qp);
+    
 
     picParam->diff_cu_qp_delta_depth = 0;
 
@@ -1460,23 +1466,23 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
     /*no bit size limitation*/
     picParam->ctu_max_bitsize_allowed = 0;
 
-    picParam->num_ref_idx_l0_default_active_minus1 = 0;
+    picParam->num_ref_idx_l0_default_active_minus1 = 2;
     picParam->num_ref_idx_l1_default_active_minus1 = 0;
 
     picParam->slice_pic_parameter_set_id = 0;
-    picParam->nal_unit_type = PPS_NUT;
+    picParam->nal_unit_type = TRAIL_N;//PPS_NUT;
 
     picParam->pic_fields.value = 0;
     picParam->pic_fields.bits.idr_pic_flag = picture->isIdr();
     /*FIXME: can't support picture type B1 and B2 now */
-    picParam->pic_fields.bits.coding_type = picture->m_type;
+    picParam->pic_fields.bits.coding_type = 1;//picture->m_type;
     picParam->pic_fields.bits.reference_pic_flag = (picture->m_type != VAAPI_PICTURE_B);
     picParam->pic_fields.bits.dependent_slice_segments_enabled_flag = 0;
     picParam->pic_fields.bits.sign_data_hiding_enabled_flag = 0;
     picParam->pic_fields.bits.constrained_intra_pred_flag = 0;
     picParam->pic_fields.bits.transform_skip_enabled_flag = 0;
     /* cu_qp_delta_enabled_flag should be true to bitrate control */
-    picParam->pic_fields.bits.cu_qp_delta_enabled_flag = 1;
+    picParam->pic_fields.bits.cu_qp_delta_enabled_flag = 0;
     picParam->pic_fields.bits.weighted_pred_flag = 0;
     picParam->pic_fields.bits.weighted_bipred_flag = 0;
     picParam->pic_fields.bits.transquant_bypass_enabled_flag = 0;
@@ -1486,7 +1492,7 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
     picParam->pic_fields.bits.pps_loop_filter_across_slices_enabled_flag = 0;
     /* scaling_list_data_present_flag: use default scaling list data*/
     picParam->pic_fields.bits.scaling_list_data_present_flag = 0;
-    picParam->pic_fields.bits.screen_content_flag = 1;
+    picParam->pic_fields.bits.screen_content_flag = 0;
     picParam->pic_fields.bits.no_output_of_prior_pics_flag = 0;
 
     return TRUE;

@@ -109,7 +109,8 @@ protected:
     //properties
     VideoProfile profile() const;
     uint8_t level () const {
-        return m_videoParamCommon.level;
+        return 120;
+        //return m_videoParamCommon.level;
     }
     uint32_t width() const {
         return m_videoParamCommon.resolution.width;
