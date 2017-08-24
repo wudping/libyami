@@ -56,10 +56,15 @@ bool VaapiPicture::render()
         return false;
 
     bool ret = doRender();
-
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     status = vaEndPicture(m_display->getID(), m_context->getID());
-    if (!checkVaapiStatus(status, "vaEndPicture()"))
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+    if (!checkVaapiStatus(status, "vaEndPicture()")){
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         return false;
+    }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     return ret;
 }
 

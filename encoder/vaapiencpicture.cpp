@@ -42,6 +42,9 @@ bool VaapiEncPicture::encode()
 
 bool VaapiEncPicture::doRender()
 {
+    static int i_dpwu = 0;
+    i_dpwu++;
+    printf("dpwu  %s %s %d, i_dpwu = %d ====\n", __FILE__, __FUNCTION__, __LINE__, i_dpwu);
     RENDER_OBJECT(m_sequence);
     RENDER_OBJECT(m_packedHeaders);
     RENDER_OBJECT(m_miscParams);
@@ -52,6 +55,7 @@ bool VaapiEncPicture::doRender()
 #ifdef __BUILD_GET_MV__
     RENDER_OBJECT(m_FEIBuffer);
 #endif
+    printf("dpwu  %s %s %d, i_dpwu = %d ====\n", __FILE__, __FUNCTION__, __LINE__, i_dpwu);
     return true;
 }
 
