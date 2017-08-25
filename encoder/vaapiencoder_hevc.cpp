@@ -1092,8 +1092,9 @@ YamiStatus VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t timeSta
 
     PicturePtr picture(new VaapiEncPictureHEVC(m_context, surface, timeStamp));
 
-    bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= m_keyPeriod || forceKeyFrame);
-    
+    //bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= m_keyPeriod || forceKeyFrame);
+    bool isIdr = (m_frameIndex == 0);
+
     printf("dpwu  %s %s %d, m_numBFrames = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_numBFrames);
 
     /* check key frames */
@@ -1146,7 +1147,8 @@ YamiStatus VaapiEncoderHEVC::encodeAllFrames()
         }
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_ENDOFFRAME);
         INFO("picture->m_type: 0x%x\n", picture->m_type);
-        if (picture->isIdr()) {
+        //if (picture->isIdr()) {
+        if (1 == m_frameIndex) {
             codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
         }
 
@@ -1238,8 +1240,8 @@ referenceListUpdate (const PicturePtr& picture, const SurfacePtr& surface)
         return true;
     }
 */
-    printf("dpwu  %s %s %d, VAAPI_PICTURE_B = %d, picture->m_type = %d ====\n", __FILE__, __FUNCTION__, __LINE__, VAAPI_PICTURE_B, picture->m_type);
-    if (picture->isIdr()) {
+    printf("dpwu  %s %s %d, VAAPI_PICTURE_B = %d, picture->m_type = %d, VAAPI_PICTURE_I = %d ====\n", __FILE__, __FUNCTION__, __LINE__, VAAPI_PICTURE_B, picture->m_type, VAAPI_PICTURE_I);
+    if (VAAPI_PICTURE_I == picture->m_type) {
         m_refList.clear();
     } else if (m_refList.size() >= m_maxRefFrames) {
         m_refList.pop_back();
@@ -1722,6 +1724,9 @@ bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 
 bool VaapiEncoderHEVC::ensurePicture (const PicturePtr& picture, const SurfacePtr& surface)
 {
+    m_refList0.clear();
+    m_refList1.clear();
+    printf("dpwu  %s %s %d, picture->m_type = %d, picture->m_poc = %d, VAAPI_PICTURE_I = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_type, picture->m_poc, VAAPI_PICTURE_I);
 
     if (picture->m_type != VAAPI_PICTURE_I &&
             !pictureReferenceListSet(picture)) {
