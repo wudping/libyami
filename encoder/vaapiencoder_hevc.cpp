@@ -998,8 +998,11 @@ void VaapiEncoderHEVC::flush()
     YamiStatus ret;
 
     FUNC_ENTER();
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     if (!m_reorderFrameList.empty()) {
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         changeLastBFrameToPFrame();
         m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
 
@@ -1007,6 +1010,7 @@ void VaapiEncoderHEVC::flush()
         if (ret != YAMI_SUCCESS) {
             ERROR("Not all frames are flushed.");
         }
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     }
 
     resetGopStart();
@@ -1074,7 +1078,8 @@ void VaapiEncoderHEVC::changeLastBFrameToPFrame()
 {
     PicturePtr lastPic = m_reorderFrameList.back();
     if (lastPic->m_type == VAAPI_PICTURE_B) {
-        lastPic->m_type = VAAPI_PICTURE_P;
+        //lastPic->m_type = VAAPI_PICTURE_P;
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         m_reorderFrameList.pop_back();
         m_reorderFrameList.push_front(lastPic);
     }
@@ -1088,6 +1093,8 @@ YamiStatus VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t timeSta
     PicturePtr picture(new VaapiEncPictureHEVC(m_context, surface, timeStamp));
 
     bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= m_keyPeriod || forceKeyFrame);
+    
+    printf("dpwu  %s %s %d, m_numBFrames = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_numBFrames);
 
     /* check key frames */
     if (isIdr || (m_frameIndex % intraPeriod() == 0)) {
@@ -1194,7 +1201,7 @@ void VaapiEncoderHEVC::setBFrame (const PicturePtr& pic)
 /* Marks the supplied picture as a P-frame */
 void VaapiEncoderHEVC::setPFrame (const PicturePtr& pic)
 {
-    pic->m_type = VAAPI_PICTURE_P;
+    pic->m_type = VAAPI_PICTURE_B;//VAAPI_PICTURE_P;
     pic->m_frameNum = (m_frameIndex % m_maxFrameNum);
 }
 
@@ -1226,10 +1233,12 @@ void VaapiEncoderHEVC::setIntraFrame (const PicturePtr& picture,bool idIdr)
 bool VaapiEncoderHEVC::
 referenceListUpdate (const PicturePtr& picture, const SurfacePtr& surface)
 {
+/*
     if (VAAPI_PICTURE_B == picture->m_type) {
         return true;
     }
-
+*/
+    printf("dpwu  %s %s %d, VAAPI_PICTURE_B = %d, picture->m_type = %d ====\n", __FILE__, __FUNCTION__, __LINE__, VAAPI_PICTURE_B, picture->m_type);
     if (picture->isIdr()) {
         m_refList.clear();
     } else if (m_refList.size() >= m_maxRefFrames) {
@@ -1355,7 +1364,7 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     seqParam->general_level_idc = level();
     seqParam->general_tier_flag = 0;
     seqParam->intra_period = intraPeriod();
-    seqParam->intra_idr_period = seqParam->intra_period;
+    seqParam->intra_idr_period = 0;//seqParam->intra_period;
     seqParam->ip_period = 1 + m_numBFrames;
     seqParam->bits_per_second = bitRate();
 
@@ -1464,13 +1473,21 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
     picParam->num_ref_idx_l1_default_active_minus1 = 0;
 
     picParam->slice_pic_parameter_set_id = 0;
-    picParam->nal_unit_type = PPS_NUT;
+    picParam->nal_unit_type = TRAIL_N;
 
     picParam->pic_fields.value = 0;
-    picParam->pic_fields.bits.idr_pic_flag = picture->isIdr();
+    
+    static int32_t i_dpwu = 0;
+    picParam->pic_fields.bits.idr_pic_flag = (0 == i_dpwu); //picture->isIdr();
     /*FIXME: can't support picture type B1 and B2 now */
-    picParam->pic_fields.bits.coding_type = picture->m_type;
-    picParam->pic_fields.bits.reference_pic_flag = (picture->m_type != VAAPI_PICTURE_B);
+    if((i_dpwu % 30) == 0)
+        picParam->pic_fields.bits.coding_type = 1;
+    else{
+        picParam->pic_fields.bits.coding_type = 3;//picture->m_type;
+    }
+    printf("dpwu  %s %s %d, picParam->pic_fields.bits.coding_type = %d, i_dpwu = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picParam->pic_fields.bits.coding_type, i_dpwu);
+    i_dpwu++;
+    picParam->pic_fields.bits.reference_pic_flag = 1; //(picture->m_type != VAAPI_PICTURE_B);
     picParam->pic_fields.bits.dependent_slice_segments_enabled_flag = 0;
     picParam->pic_fields.bits.sign_data_hiding_enabled_flag = 0;
     picParam->pic_fields.bits.constrained_intra_pred_flag = 0;
@@ -1685,10 +1702,11 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
 
 bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 {
+/*
     if (picture->m_type != VAAPI_PICTURE_I) {
         return true;
     }
-
+*/
     if (!picture->editSequence(m_seqParam) || !fill(m_seqParam)) {
         ERROR("failed to create sequence parameter buffer (SPS)");
         return false;

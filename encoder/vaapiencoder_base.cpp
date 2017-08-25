@@ -103,6 +103,7 @@ YamiStatus VaapiEncoderBase::start(void)
 
 void VaapiEncoderBase::flush(void)
 {
+printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     /* Current version of VaapiEncoderBase::flush is empty fucntion
      * But we may add something in future.All derive class need call this in derive::flush()
      */
