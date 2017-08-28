@@ -81,6 +81,7 @@ private:
     bool fill(VAEncSequenceParameterBufferHEVC*) const;
     bool fill(VAEncPictureParameterBufferHEVC*, const PicturePtr&, const SurfacePtr&) const ;
     bool fillReferenceList(VAEncSliceParameterBufferHEVC* slice) const;
+    bool fillReferenceList(VAEncSliceParameterBufferHEVC* slice, int32_t currentPOC) const;
     bool ensureSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferHEVC* const);
     bool ensurePictureHeader(const PicturePtr&, const VAEncPictureParameterBufferHEVC* const );
     bool addSliceHeaders (const PicturePtr&) const;

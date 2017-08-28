@@ -807,7 +807,7 @@ private:
     }
 
     bool isIdr() const {
-		return m_type == VAAPI_PICTURE_I;// && !m_frameNum;
+        return m_type == VAAPI_PICTURE_I;// && !m_frameNum;
         //return m_type == VAAPI_PICTURE_I && !m_frameNum;
     }
 
@@ -1100,12 +1100,14 @@ YamiStatus VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t timeSta
 
     /* check key frames */
     if (isIdr || (m_frameIndex % intraPeriod() == 0)) {
+        /*
         if (isIdr && m_reorderFrameList.size()) {
             changeLastBFrameToPFrame();
         }
-   		printf("dpwu  %s %s %d, m_numBFrames = %d, m_frameIndex = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_numBFrames, m_frameIndex);
+        */
+        printf("dpwu  %s %s %d, m_numBFrames = %d, m_frameIndex = %d, isIdr = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_numBFrames, m_frameIndex, isIdr);
 
-        setIntraFrame (picture, isIdr);
+        setIntraFrame (picture, true);
         m_reorderFrameList.push_back(picture);
         m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
     } else if (m_frameIndex % (m_numBFrames + 1) != 0) {
@@ -1529,24 +1531,77 @@ bool VaapiEncoderHEVC::ensurePictureHeader(const PicturePtr& picture, const VAEn
     return true;
 }
 
-bool VaapiEncoderHEVC:: fillReferenceList(VAEncSliceParameterBufferHEVC* slice) const
+
+bool VaapiEncoderHEVC:: fillReferenceList(VAEncSliceParameterBufferHEVC* slice, int32_t currentPOC) const
 {
     uint32_t i = 0;
-    for (i = 0; i < m_refList0.size(); i++) {
+    uint32_t size = 0;
+    if(HEVC_SLICE_TYPE_I == slice->slice_type)
+        size = 0;
+    else
+        size = m_refList0.size();
+    for (i = 0; i < size; i++) {
         assert(m_refList0[i] && m_refList0[i]->m_pic && (m_refList0[i]->m_pic->getID() != VA_INVALID_ID));
         slice->ref_pic_list0[i].picture_id = m_refList0[i]->m_pic->getID();
         slice->ref_pic_list0[i].pic_order_cnt= m_refList0[i]->m_poc;
+        if(31 == currentPOC)
+            slice->ref_pic_list0[i].pic_order_cnt= 0;
+        printf("dpwu  %s %s %d, slice->slice_type = %d, size = %d, m_refList0[%d]->m_poc = %d, slice->ref_pic_list0[%d].pic_order_cnt = %d, currentPOC = %d  ====\n", __FILE__, __FUNCTION__, __LINE__, slice->slice_type, size, i, m_refList0[i]->m_poc, i, slice->ref_pic_list0[i].pic_order_cnt, currentPOC);
     }
     for (; i < N_ELEMENTS(slice->ref_pic_list0); i++)
         slice->ref_pic_list0[i].picture_id = VA_INVALID_SURFACE;
 
-    for (i = 0; i < m_refList1.size(); i++){
+    if(HEVC_SLICE_TYPE_I == slice->slice_type)
+        size = 0;
+    else
+        size = m_refList1.size();
+    printf("dpwu  %s %s %d, slice->slice_type = %d, size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, slice->slice_type, size);
+
+    for (i = 0; i < size; i++){
         assert(m_refList1[i] && m_refList1[i]->m_pic && (m_refList1[i]->m_pic->getID() != VA_INVALID_ID));
         slice->ref_pic_list1[i].picture_id = m_refList1[i]->m_pic->getID();
         slice->ref_pic_list1[i].pic_order_cnt= m_refList1[i]->m_poc;
     }
     for (; i < N_ELEMENTS(slice->ref_pic_list1); i++)
         slice->ref_pic_list1[i].picture_id = VA_INVALID_SURFACE;
+    printf("dpwu  %s %s %d, m_refList1.size() = %ld, m_refList0.size() = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, m_refList1.size(), m_refList0.size());
+
+    return true;
+}
+
+
+bool VaapiEncoderHEVC:: fillReferenceList(VAEncSliceParameterBufferHEVC* slice) const
+{
+    uint32_t i = 0;
+    uint32_t size = 0;
+    if(HEVC_SLICE_TYPE_I == slice->slice_type)
+        size = 0;
+    else
+        size = m_refList0.size();
+    for (i = 0; i < size; i++) {
+        assert(m_refList0[i] && m_refList0[i]->m_pic && (m_refList0[i]->m_pic->getID() != VA_INVALID_ID));
+        slice->ref_pic_list0[i].picture_id = m_refList0[i]->m_pic->getID();
+        slice->ref_pic_list0[i].pic_order_cnt= m_refList0[i]->m_poc;
+        printf("dpwu  %s %s %d, slice->slice_type = %d, size = %d, m_refList0[%d]->m_poc = %d  ====\n", __FILE__, __FUNCTION__, __LINE__, slice->slice_type, size, i, m_refList0[i]->m_poc);
+    }
+    for (; i < N_ELEMENTS(slice->ref_pic_list0); i++)
+        slice->ref_pic_list0[i].picture_id = VA_INVALID_SURFACE;
+
+    if(HEVC_SLICE_TYPE_I == slice->slice_type)
+        size = 0;
+    else
+        size = m_refList1.size();
+    printf("dpwu  %s %s %d, slice->slice_type = %d, size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, slice->slice_type, size);
+
+    for (i = 0; i < size; i++){
+        assert(m_refList1[i] && m_refList1[i]->m_pic && (m_refList1[i]->m_pic->getID() != VA_INVALID_ID));
+        slice->ref_pic_list1[i].picture_id = m_refList1[i]->m_pic->getID();
+        slice->ref_pic_list1[i].pic_order_cnt= m_refList1[i]->m_poc;
+    }
+    for (; i < N_ELEMENTS(slice->ref_pic_list1); i++)
+        slice->ref_pic_list1[i].picture_id = VA_INVALID_SURFACE;
+    printf("dpwu  %s %s %d, m_refList1.size() = %ld, m_refList0.size() = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, m_refList1.size(), m_refList0.size());
+
     return true;
 }
 
@@ -1560,9 +1615,8 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
 
     HevcNalUnitType nalUnitType = (picture->isIdr() ? IDR_W_RADL : TRAIL_R );
     if(picture->m_poc > 0 && (picture->m_poc % 30) == 0)
-        nalUnitType = CRA_NUT;
+        nalUnitType = IDR_W_RADL;//CRA_NUT;
     printf("dpwu  %s %s %d, picture->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc);
-    //CRA_NUT
     bs.writeBits(HEVC_NAL_START_CODE, 32);
     bit_writer_write_nal_header(&bs, nalUnitType);
 
@@ -1681,7 +1735,7 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
         if (picture->m_type == VAAPI_PICTURE_B && m_refList1.size() > 0)
             sliceParam->num_ref_idx_l1_active_minus1 = m_refList1.size() - 1;
 
-        fillReferenceList(sliceParam);
+        fillReferenceList(sliceParam, picture->m_poc);
 
         /* luma_log2_weight_denom should be the range: [0, 7] */
         sliceParam->luma_log2_weight_denom = 0;
