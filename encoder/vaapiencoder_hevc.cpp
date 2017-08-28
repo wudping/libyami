@@ -807,7 +807,8 @@ private:
     }
 
     bool isIdr() const {
-        return m_type == VAAPI_PICTURE_I && !m_frameNum;
+		return m_type == VAAPI_PICTURE_I;// && !m_frameNum;
+        //return m_type == VAAPI_PICTURE_I && !m_frameNum;
     }
 
     //getOutput is a virutal function, we need this to help bind
@@ -1095,13 +1096,14 @@ YamiStatus VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t timeSta
     //bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= m_keyPeriod || forceKeyFrame);
     bool isIdr = (m_frameIndex == 0);
 
-    printf("dpwu  %s %s %d, m_numBFrames = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_numBFrames);
+    printf("dpwu  %s %s %d, m_numBFrames = %d, m_frameIndex = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_numBFrames, m_frameIndex);
 
     /* check key frames */
     if (isIdr || (m_frameIndex % intraPeriod() == 0)) {
         if (isIdr && m_reorderFrameList.size()) {
             changeLastBFrameToPFrame();
         }
+   		printf("dpwu  %s %s %d, m_numBFrames = %d, m_frameIndex = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_numBFrames, m_frameIndex);
 
         setIntraFrame (picture, isIdr);
         m_reorderFrameList.push_back(picture);
@@ -1555,7 +1557,12 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
     bool ret = true;
     BitWriter bs;
     BOOL short_term_ref_pic_set_sps_flag = !!m_shortRFS.num_short_term_ref_pic_sets;
+
     HevcNalUnitType nalUnitType = (picture->isIdr() ? IDR_W_RADL : TRAIL_R );
+    if(picture->m_poc > 0 && (picture->m_poc % 30) == 0)
+        nalUnitType = CRA_NUT;
+    printf("dpwu  %s %s %d, picture->m_poc = %d ====\n", __FILE__, __FUNCTION__, __LINE__, picture->m_poc);
+    //CRA_NUT
     bs.writeBits(HEVC_NAL_START_CODE, 32);
     bit_writer_write_nal_header(&bs, nalUnitType);
 
