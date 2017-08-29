@@ -495,6 +495,7 @@ bool VaapiEncoderBase::ensureFrameRate(VaapiEncPicture* picture, uint32_t tempor
     return true;
 }
 
+#if (0) //for HEVC encoding based on VPG driver
 /* Generates additional control parameters */
 bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 {
@@ -506,10 +507,34 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 
     if (!fillQualityLevel(picture))
         return false;
-
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR ||
             mode == RATE_CONTROL_VBR) {
+        //+1 for the highest layer
+        uint32_t layers = m_videoParamCommon.temporalLayers.numLayersMinus1 + 1;
+        for (uint32_t i = 0; i < layers; i++) {
+            if (!ensureRateControl(picture, i))
+                return false;
+            if (!ensureFrameRate(picture, i))
+                return false;
+        }
+    }
+    return true;
+}
+#endif
+
+/* Generates additional control parameters */
+bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
+{
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+        return false;
+    if (hrd)
+        fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+    if (true) {
         //+1 for the highest layer
         uint32_t layers = m_videoParamCommon.temporalLayers.numLayersMinus1 + 1;
         for (uint32_t i = 0; i < layers; i++) {
