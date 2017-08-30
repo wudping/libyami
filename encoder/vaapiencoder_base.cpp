@@ -226,7 +226,7 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
             if(m_videoParamCommon.rcParams.bitRate > 0){
                 if(m_videoParamCommon.rcMode != RATE_CONTROL_VBR)
-                    m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
+                    m_videoParamCommon.rcMode = (VideoRateControl)0x82;//RATE_CONTROL_CBR;
             } else{
                 m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
             }
@@ -560,7 +560,8 @@ void unrefAllocator(SurfaceAllocator* allocator)
 
 bool VaapiEncoderBase::initVA()
 {
-    VAConfigAttrib attrib, *pAttrib = NULL;
+    VAConfigAttrib *pAttrib = NULL;
+    VAConfigAttrib attribArray[2];
     ConfigPtr config;
     int32_t attribCount = 0;
     FUNC_ENTER();
@@ -572,11 +573,14 @@ bool VaapiEncoderBase::initVA()
     }
 
     if (RATE_CONTROL_NONE != m_videoParamCommon.rcMode) {
-        attrib.type = VAConfigAttribRateControl;
-        attrib.value = m_videoParamCommon.rcMode;
-        pAttrib = &attrib;
-        attribCount = 1;
+        attribArray[0].type = VAConfigAttribRTFormat;
+        attribArray[0].value = 0;
+        attribArray[1].type = VAConfigAttribRateControl;
+        attribArray[1].value = m_videoParamCommon.rcMode; 
+        pAttrib = attribArray;
+        attribCount = 2;
     }
+    //#define VA_RC_CQP                       0x00000010
 
     YamiStatus status = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, pAttrib, attribCount, config);
     if (YAMI_SUCCESS != status) {
