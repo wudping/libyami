@@ -1469,7 +1469,11 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
     picParam->pic_fields.value = 0;
     picParam->pic_fields.bits.idr_pic_flag = picture->isIdr();
     /*FIXME: can't support picture type B1 and B2 now */
-    picParam->pic_fields.bits.coding_type = picture->m_type;
+    picParam->pic_fields.bits.coding_type = 1; //VAAPI_PICTURE_I
+    if(VAAPI_PICTURE_B == picture->m_type)
+        picParam->pic_fields.bits.coding_type = 3;
+    if(VAAPI_PICTURE_P == picture->m_type)
+        picParam->pic_fields.bits.coding_type = 2;
     picParam->pic_fields.bits.reference_pic_flag = (picture->m_type != VAAPI_PICTURE_B);
     picParam->pic_fields.bits.dependent_slice_segments_enabled_flag = 0;
     picParam->pic_fields.bits.sign_data_hiding_enabled_flag = 0;
@@ -1685,10 +1689,12 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
 
 bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 {
+//for vpg driver, add sps for every frame;
+/*
     if (picture->m_type != VAAPI_PICTURE_I) {
         return true;
     }
-
+*/
     if (!picture->editSequence(m_seqParam) || !fill(m_seqParam)) {
         ERROR("failed to create sequence parameter buffer (SPS)");
         return false;
@@ -1704,6 +1710,9 @@ bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 
 bool VaapiEncoderHEVC::ensurePicture (const PicturePtr& picture, const SurfacePtr& surface)
 {
+    //clear reference frames of the reference list when encoding I frame.
+    m_refList0.clear();
+    m_refList1.clear();
 
     if (picture->m_type != VAAPI_PICTURE_I &&
             !pictureReferenceListSet(picture)) {
