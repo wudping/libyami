@@ -506,10 +506,8 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 
     if (!fillQualityLevel(picture))
         return false;
-
-    VideoRateControl mode = rateControlMode();
-    if (mode == RATE_CONTROL_CBR ||
-            mode == RATE_CONTROL_VBR) {
+    //for vpg driver, open CBR mode with CQP mode;
+    if (true) {
         //+1 for the highest layer
         uint32_t layers = m_videoParamCommon.temporalLayers.numLayersMinus1 + 1;
         for (uint32_t i = 0; i < layers; i++) {
