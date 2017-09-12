@@ -52,6 +52,39 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     return buf;
 }
 
+BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
+    VABufferType type,
+    uint32_t size, VAEncSequenceParameterBufferHEVC* seq,
+    const void* data,
+    void** mapped)
+{
+    BufObjectPtr buf;
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    if (!size || !context || !context->getDisplay()){
+        ERROR("vaapibuffer: can't create buffer");
+        return buf;
+    }
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    DisplayPtr display = context->getDisplay();
+    VABufferID id;
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    VAStatus status = vaCreateBuffer(display->getID(), context->getID(),
+        type, size, 1, (void*)data, &id);
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d, type = %d, size = %d, VAEncPictureParameterBufferType = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag, type, size, VAEncPictureParameterBufferType);
+    if (!checkVaapiStatus(status, "vaCreateBuffer"))
+        return buf;
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    buf.reset(new VaapiBuffer(display, id, size));
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    if (mapped) {
+        *mapped = buf->map();
+        if (!*mapped)
+            buf.reset();
+    }
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    return buf;
+}
+
 void* VaapiBuffer::map()
 {
     if (!m_data) {

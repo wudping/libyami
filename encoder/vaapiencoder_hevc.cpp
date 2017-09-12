@@ -1418,6 +1418,7 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
                             const SurfacePtr& surface) const
 {
     uint32_t i = 0;
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     picParam->decoded_curr_pic.picture_id = surface->getID();
     picParam->decoded_curr_pic.flags = VA_PICTURE_HEVC_RPS_LT_CURR;
@@ -1492,6 +1493,7 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
     picParam->pic_fields.bits.scaling_list_data_present_flag = 0;
     picParam->pic_fields.bits.screen_content_flag = 1;
     picParam->pic_fields.bits.no_output_of_prior_pics_flag = 0;
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     return TRUE;
 }
@@ -1543,6 +1545,8 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
     HevcNalUnitType nalUnitType = (picture->isIdr() ? IDR_W_RADL : TRAIL_R );
     bs.writeBits(HEVC_NAL_START_CODE, 32);
     bit_writer_write_nal_header(&bs, nalUnitType);
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     /* first_slice_segment_in_pic_flag */
     bs.writeBits(sliceIndex == 0, 1);
@@ -1550,6 +1554,8 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
     /* no_output_of_prior_pics_flag */
     if (nalUnitType >=  BLA_W_LP && nalUnitType <= RSV_IRAP_VCL23 )
         bs.writeBits(0, 1);
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     /* slice_pic_parameter_set_id */
     bit_writer_put_ue(&bs, 0);
@@ -1564,6 +1570,7 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
 
     if (!sliceParam->slice_fields.bits.dependent_slice_segment_flag) {
         bit_writer_put_ue(&bs, sliceParam->slice_type);
+        printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
         ASSERT(!m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
@@ -1625,6 +1632,8 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
     uint32_t sliceOfCtus, sliceModCtus, curSliceCtus;
     uint32_t numCtus;
     uint32_t lastCtuIndex;
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     assert (picture);
 
@@ -1639,6 +1648,8 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
     sliceOfCtus = numCtus / m_numSlices;
     sliceModCtus = numCtus % m_numSlices;
     lastCtuIndex = 0;
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
     for (uint32_t i = 0; i < m_numSlices; ++i) {
         curSliceCtus = sliceOfCtus;
         if (sliceModCtus) {
@@ -1690,11 +1701,10 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
 bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 {
 //for vpg driver, add sps for every frame;
-/*
     if (picture->m_type != VAAPI_PICTURE_I) {
         return true;
     }
-*/
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     if (!picture->editSequence(m_seqParam) || !fill(m_seqParam)) {
         ERROR("failed to create sequence parameter buffer (SPS)");
         return false;
@@ -1713,22 +1723,32 @@ bool VaapiEncoderHEVC::ensurePicture (const PicturePtr& picture, const SurfacePt
     //clear reference frames of the reference list when encoding I frame.
     m_refList0.clear();
     m_refList1.clear();
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     if (picture->m_type != VAAPI_PICTURE_I &&
             !pictureReferenceListSet(picture)) {
         ERROR ("reference list reorder failed");
         return false;
     }
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
-    if (!picture->editPicture(m_picParam) || !fill(m_picParam, picture, surface)) {
+    if (!picture->editPicture(m_picParam, m_seqParam)) {
         ERROR("failed to create picture parameter buffer (PPS)");
         return false;
     }
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d, m_picParam = %p, m_seqParam = %p, m_seqParam end = %p ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag, m_picParam, m_seqParam, m_seqParam + sizeof(VAEncSequenceParameterBufferHEVC));
+    if(!fill(m_picParam, picture, surface)) {
+        ERROR("failed to create picture parameter buffer (PPS)");
+        return false;
+    }
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     if (picture->isIdr() && !ensurePictureHeader (picture, m_picParam)) {
             ERROR ("set picture packed header failed");
             return false;
     }
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     return true;
 }
@@ -1736,6 +1756,8 @@ bool VaapiEncoderHEVC::ensurePicture (const PicturePtr& picture, const SurfacePt
 bool VaapiEncoderHEVC::ensureSlices(const PicturePtr& picture)
 {
     assert (picture);
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     if (!addSliceHeaders (picture))
         return false;
@@ -1752,20 +1774,34 @@ YamiStatus VaapiEncoderHEVC::encodePicture(const PicturePtr& picture)
     {
         AutoLock locker(m_paramLock);
 
+        if(m_seqParam)
+            printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
+
         if (!ensureSequence (picture))
             return ret;
+        if(m_seqParam)
+            printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
         if (!ensureMiscParams (picture.get()))
             return ret;
+        printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
         if (!ensurePicture(picture, reconstruct))
             return ret;
+
+        printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
         if (!ensureSlices (picture))
             return ret;
     }
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d, picture->m_type = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag, picture->m_type);
     if (!picture->encode())
         return ret;
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     if (!referenceListUpdate (picture, reconstruct))
         return ret;
+    
+    printf("dpwu  %s %s %d, m_seqParam->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_seqParam->seq_fields.bits.separate_colour_plane_flag);
 
     return YAMI_SUCCESS;
 }

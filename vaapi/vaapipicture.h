@@ -70,12 +70,16 @@ protected:
 
     template<class T>
     bool editObject(BufObjectPtr& object , VABufferType, T*& bufPtr);
+    template<class T>
+    bool editObject(BufObjectPtr& object , VABufferType, T*& bufPtr, VAEncSequenceParameterBufferHEVC* seq);
     bool addObject(std::vector<std::pair<BufObjectPtr, BufObjectPtr> >& objects,
                    const BufObjectPtr& param, const BufObjectPtr& data);
     bool addObject(std::vector<BufObjectPtr>& objects, const BufObjectPtr& object);
 
     template<class T>
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
+    template<class T>
+    BufObjectPtr createBufferObject(VABufferType, T*& bufPtr, VAEncSequenceParameterBufferHEVC* seq);
     inline BufObjectPtr createBufferObject(VABufferType bufType,
         uint32_t size, const void* data, void** mapped);
     VaapiPicture();
@@ -85,6 +89,12 @@ template<class T>
 BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr)
 {
     return VaapiBuffer::create(m_context, bufType, bufPtr);
+}
+
+template<class T>
+BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr, VAEncSequenceParameterBufferHEVC* seq)
+{
+    return VaapiBuffer::create(m_context, bufType, bufPtr, seq);
 }
 
 BufObjectPtr VaapiPicture::createBufferObject(VABufferType bufType,
@@ -103,6 +113,24 @@ bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& b
 
     if (!bufPtr)
         return false;
+
+    return bool(object);
+}
+
+template<class T>
+bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& bufPtr, VAEncSequenceParameterBufferHEVC* seq)
+{
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    /* already set? It's only one time offer*/
+    if (object)
+        return false;
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    object = createBufferObject(bufType, bufPtr, seq);
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+
+    if (!bufPtr)
+        return false;
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
 
     return bool(object);
 }

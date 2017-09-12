@@ -32,10 +32,19 @@ public:
         uint32_t size,
         const void* data = 0,
         void** mapped = 0);
+    static BufObjectPtr create(const ContextPtr&,
+        VABufferType,
+        uint32_t size, VAEncSequenceParameterBufferHEVC* seq,
+        const void* data = 0,
+        void** mapped = 0);
 
     template <class T>
     static BufObjectPtr create(const ContextPtr&,
         VABufferType, T*& mapped);
+
+    template <class T>
+    static BufObjectPtr create(const ContextPtr&,
+        VABufferType, T*& mapped, VAEncSequenceParameterBufferHEVC* seq);
 
     void* map();
     void unmap();
@@ -57,6 +66,24 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     VABufferType type, T*& mapped)
 {
     BufObjectPtr p = create(context, type, sizeof(T), NULL, (void**)&mapped);
+    if (p) {
+        if (mapped) {
+            memset(mapped, 0, sizeof(T));
+        }
+        else {
+            //bug
+            p.reset();
+        }
+    }
+    return p;
+}
+
+template <class T>
+BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
+    VABufferType type, T*& mapped, VAEncSequenceParameterBufferHEVC* seq)
+{
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    BufObjectPtr p = create(context, type, sizeof(T), seq, NULL, (void**)&mapped);
     if (p) {
         if (mapped) {
             memset(mapped, 0, sizeof(T));

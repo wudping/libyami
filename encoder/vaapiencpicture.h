@@ -33,6 +33,9 @@ class VaapiEncPicture:public VaapiPicture {
     bool editSequence(T * &seqParam);
 
     template < class T >
+    bool editPicture(T * &picParam, VAEncSequenceParameterBufferHEVC* seq);
+    
+    template < class T >
     bool editPicture(T * &picParam);
 
     template < class T >
@@ -94,6 +97,13 @@ template < class T > bool VaapiEncPicture::editPicture(T * &picParam)
 {
     return editObject(m_picture, VAEncPictureParameterBufferType,
                       picParam);
+}
+
+template < class T > bool VaapiEncPicture::editPicture(T * &picParam, VAEncSequenceParameterBufferHEVC* seq)
+{
+    printf("dpwu  %s %s %d, seq->seq_fields.bits.separate_colour_plane_flag = %d ====\n", __FILE__, __FUNCTION__, __LINE__, seq->seq_fields.bits.separate_colour_plane_flag);
+    return editObject(m_picture, VAEncPictureParameterBufferType,
+                      picParam, seq);
 }
 
 template < class T > bool VaapiEncPicture::editQMatrix(T * &qMatrix)
