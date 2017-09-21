@@ -317,9 +317,34 @@ SurfacePtr VaapiDecoderBase::createSurface()
     return surface;
 }
 
+//uint8_t* mapSurfaceToImageXX(VADisplay display, VASurfaceID surface, VAImage& image)
+uint8_t* mapSurfaceToImageXXyy(VADisplay display, VASurfaceID surface, VAImage* image)
+{
+    uint8_t* p = NULL;
+    VAStatus status = vaDeriveImage(display, surface, image);
+    if (VA_STATUS_SUCCESS != status) {
+        printf("dpwu  %s %s %d error ====\n", __FILE__, __FUNCTION__, __LINE__);
+        return NULL;
+    }
+    status = vaMapBuffer(display, image->buf, (void**)&p);
+    if (VA_STATUS_SUCCESS != status) {
+        printf("dpwu  %s %s %d error ====\n", __FILE__, __FUNCTION__, __LINE__);
+        return NULL;
+    }
+    return p;
+}
+
 YamiStatus VaapiDecoderBase::outputPicture(const PicturePtr& picture)
 {
     //TODO: reorder poc
+    VAImage image;
+    uint8_t* buf = mapSurfaceToImageXXyy(m_display->getID(), picture->getSurface()->getID(), &image);
+    printf("dpwu  %s %s %d, image.pitches[0] = %d ====\n", __FILE__, __FUNCTION__, __LINE__, image.pitches[0]);
+    for(uint32_t ii = 0; ii < image.pitches[0]; ii++){
+         printf("0x%x ", buf[ii]);
+    }
+    printf("\n");
+    
     return m_surfacePool->output(picture->getSurface(),
                picture->m_timeStamp)
         ? YAMI_SUCCESS
