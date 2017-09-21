@@ -72,6 +72,8 @@ public:
     YamiStatus decode(const uint8_t* data, const uint32_t size)
     {
         using namespace ::YamiParser::JPEG;
+        
+        printf("dpwu  %s %s %d, size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, size);
 
         //this mainly for codec flush, jpeg/mjpeg do not have to flush.
         //just return success for this
@@ -134,7 +136,6 @@ private:
         using namespace ::YamiParser::JPEG;
 
         m_decodeStatus = YAMI_SUCCESS;
-
         switch(m_parser->current().marker) {
         case M_SOI:
             m_slice.start = 0;
@@ -146,6 +147,11 @@ private:
             break;
         case M_EOI:
             m_slice.length = m_parser->current().position - m_slice.start;
+            printf("dpwu  %s %s %d, m_slice.length = %d, m_slice.start = %d, M_EOI = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, m_slice.length, m_slice.start, M_EOI);
+            for(uint32_t ii = m_slice.start; ii < m_slice.start + 1024; ii++){
+               printf("0x%x ", m_slice.data[ii]);
+            }
+            printf("\n");
             m_decodeStatus = m_finishHandler();
             break;
         case M_DQT:
@@ -193,6 +199,8 @@ VaapiDecoderJPEG::VaapiDecoderJPEG()
     return;
 }
 
+
+#if (1)
 YamiStatus VaapiDecoderJPEG::fillPictureParam()
 {
     const FrameHeader::Shared frame = m_impl->frameHeader();
@@ -202,8 +210,39 @@ YamiStatus VaapiDecoderJPEG::fillPictureParam()
     if (numComponents > 4)
         return YAMI_FAIL;
 
-    VAPictureParameterBufferJPEGBaseline* vaPicParam(NULL);
+    VAPictureParameterBufferJPEGBaseline vaPicParam;
 
+    for (size_t i(0); i < numComponents; ++i) {
+        const Component::Shared& component = frame->components[i];
+        vaPicParam.components[i].component_id = component->id;
+        vaPicParam.components[i].h_sampling_factor = component->hSampleFactor;
+        vaPicParam.components[i].v_sampling_factor = component->vSampleFactor;
+        vaPicParam.components[i].quantiser_table_selector =
+            component->quantTableNumber;
+    }
+
+    vaPicParam.picture_width = frame->imageWidth;
+    vaPicParam.picture_height = frame->imageHeight;
+    vaPicParam.num_components = frame->components.size();
+
+    if (!m_picture->editPicture(vaPicParam))
+        return YAMI_FAIL;
+
+    return YAMI_SUCCESS;
+}
+#endif
+
+#if (0)
+YamiStatus VaapiDecoderJPEG::fillPictureParam()
+{
+    const FrameHeader::Shared frame = m_impl->frameHeader();
+
+    const size_t numComponents = frame->components.size();
+
+    if (numComponents > 4)
+        return YAMI_FAIL;
+
+    VAPictureParameterBufferJPEGBaseline *vaPicParam(NULL);
     if (!m_picture->editPicture(vaPicParam))
         return YAMI_FAIL;
 
@@ -222,17 +261,17 @@ YamiStatus VaapiDecoderJPEG::fillPictureParam()
 
     return YAMI_SUCCESS;
 }
+#endif
 
 YamiStatus VaapiDecoderJPEG::fillSliceParam()
 {
     const ScanHeader::Shared scan = m_impl->scanHeader();
     const FrameHeader::Shared frame = m_impl->frameHeader();
     const Slice& slice = m_impl->slice();
-    VASliceParameterBufferJPEGBaseline *sliceParam(NULL);
+    VASliceParameterBufferJPEGBaseline param;
+    VASliceParameterBufferJPEGBaseline *sliceParam = &param;
 
-    if (!m_picture->newSlice(sliceParam, slice.data + slice.start, slice.length))
-        return YAMI_FAIL;
-
+    
     for (size_t i(0); i < scan->numComponents; ++i) {
         sliceParam->components[i].component_selector =
             scan->components[i]->id;
@@ -271,9 +310,13 @@ YamiStatus VaapiDecoderJPEG::fillSliceParam()
 
     sliceParam->num_mcus = codedWidth * codedHeight;
 
+    if (!m_picture->newSlice(param, slice.data + slice.start, slice.length))
+        return YAMI_FAIL;
+
     return YAMI_SUCCESS;
 }
 
+#if (0)
 YamiStatus VaapiDecoderJPEG::loadQuantizationTables()
 {
     using namespace ::YamiParser::JPEG;
@@ -298,7 +341,46 @@ YamiStatus VaapiDecoderJPEG::loadQuantizationTables()
 
     return YAMI_SUCCESS;
 }
+#endif
 
+YamiStatus VaapiDecoderJPEG::loadQuantizationTables()
+{
+    using namespace ::YamiParser::JPEG;
+
+    VAIQMatrixBufferJPEGBaseline vaIqMatrix;
+
+    size_t numTables = std::min(
+        N_ELEMENTS(vaIqMatrix.quantiser_table), size_t(NUM_QUANT_TBLS));
+    
+    printf("dpwu  %s %s %d, numTables = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, numTables);
+    for (size_t i(0); i < numTables; ++i) {
+        const QuantTable::Shared& quantTable = m_impl->quantTables()[i];
+        vaIqMatrix.load_quantiser_table[i] = bool(quantTable);
+        printf("dpwu  %s %s %d, !quantTable = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, !quantTable);
+        if (!quantTable){
+            for (uint32_t j(0); j < DCTSIZE2; ++j){
+                vaIqMatrix.quantiser_table[i][j] = 0;
+                printf("%d ", vaIqMatrix.quantiser_table[i][j]);
+            }
+            printf("\n");
+            continue;
+        }
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+        assert(quantTable->precision == 0);
+        for (uint32_t j(0); j < DCTSIZE2; ++j){
+            vaIqMatrix.quantiser_table[i][j] = quantTable->values[j];
+            printf("%d ", vaIqMatrix.quantiser_table[i][j]);
+        }
+        printf("\n");
+    }
+
+    if (!m_picture->editIqMatrix(vaIqMatrix))
+        return YAMI_FAIL;
+
+    return YAMI_SUCCESS;
+}
+
+#if (0)
 YamiStatus VaapiDecoderJPEG::loadHuffmanTables()
 {
     using namespace ::YamiParser::JPEG;
@@ -338,6 +420,50 @@ YamiStatus VaapiDecoderJPEG::loadHuffmanTables()
         memset(vaHuffmanTable->huffman_table[i].pad,
                 0, sizeof(vaHuffmanTable->huffman_table[i].pad));
     }
+
+    return YAMI_SUCCESS;
+}
+#endif
+
+YamiStatus VaapiDecoderJPEG::loadHuffmanTables()
+{
+    using namespace ::YamiParser::JPEG;
+
+    VAHuffmanTableBufferJPEGBaseline vaHuffmanTable;
+
+    size_t numTables = std::min(
+        N_ELEMENTS(vaHuffmanTable.huffman_table), size_t(NUM_HUFF_TBLS));
+
+    for (size_t i(0); i < numTables; ++i) {
+        const HuffTable::Shared& dcTable = m_impl->dcHuffmanTables()[i];
+        const HuffTable::Shared& acTable = m_impl->acHuffmanTables()[i];
+        bool valid = bool(dcTable) && bool(acTable);
+        vaHuffmanTable.load_huffman_table[i] = valid;
+        if (!valid)
+            continue;
+
+        // Load DC Table
+        memcpy(vaHuffmanTable.huffman_table[i].num_dc_codes,
+            &dcTable->codes[0],
+            sizeof(vaHuffmanTable.huffman_table[i].num_dc_codes));
+        memcpy(vaHuffmanTable.huffman_table[i].dc_values,
+            &dcTable->values[0],
+            sizeof(vaHuffmanTable.huffman_table[i].dc_values));
+
+        // Load AC Table
+        memcpy(vaHuffmanTable.huffman_table[i].num_ac_codes,
+            &acTable->codes[0],
+            sizeof(vaHuffmanTable.huffman_table[i].num_ac_codes));
+        memcpy(vaHuffmanTable.huffman_table[i].ac_values,
+            &acTable->values[0],
+            sizeof(vaHuffmanTable.huffman_table[i].ac_values));
+
+        memset(vaHuffmanTable.huffman_table[i].pad,
+                0, sizeof(vaHuffmanTable.huffman_table[i].pad));
+    }
+
+    if (!m_picture->editHufTable(vaHuffmanTable))
+        return YAMI_FAIL;
 
     return YAMI_SUCCESS;
 }

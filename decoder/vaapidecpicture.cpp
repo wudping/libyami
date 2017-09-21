@@ -41,9 +41,9 @@ bool VaapiDecPicture::decode()
 bool VaapiDecPicture::doRender()
 {
     RENDER_OBJECT(m_picture);
-    RENDER_OBJECT(m_probTable);
+    //RENDER_OBJECT(m_probTable);
     RENDER_OBJECT(m_iqMatrix);
-    RENDER_OBJECT(m_bitPlane);
+    //RENDER_OBJECT(m_bitPlane);
     RENDER_OBJECT(m_hufTable);
     RENDER_OBJECT(m_slices);
     return true;

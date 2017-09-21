@@ -30,7 +30,13 @@ public:
     bool editPicture(T*& picParam);
 
     template <class T>
+    bool editPicture(T& picParam);
+
+    template <class T>
     bool editIqMatrix(T*& matrix);
+
+    template <class T>
+    bool editIqMatrix(T& matrix);
 
     template <class T>
     bool editBitPlane(T*& plane, size_t size);
@@ -39,10 +45,16 @@ public:
     bool editHufTable(T*& hufTable);
 
     template <class T>
+    bool editHufTable(T& hufTable);
+
+    template <class T>
     bool editProbTable(T*& probTable);
 
     template <class T>
     bool newSlice(T*& sliceParam, const void* sliceData, uint32_t sliceSize);
+
+    template <class T>
+    bool newSlice(T& sliceParam, const void* sliceData, uint32_t sliceSize);
 
     bool decode();
 
@@ -66,8 +78,20 @@ bool VaapiDecPicture::editPicture(T*& picParam)
     return editObject(m_picture, VAPictureParameterBufferType, picParam);
 }
 
+template<class T>
+bool VaapiDecPicture::editPicture(T& picParam)
+{
+    return editObject(m_picture, VAPictureParameterBufferType, picParam);
+}
+
 template <class T>
 bool VaapiDecPicture::editIqMatrix(T*& matrix)
+{
+    return editObject(m_iqMatrix, VAIQMatrixBufferType, matrix);
+}
+
+template <class T>
+bool VaapiDecPicture::editIqMatrix(T& matrix)
 {
     return editObject(m_iqMatrix, VAIQMatrixBufferType, matrix);
 }
@@ -91,6 +115,13 @@ bool VaapiDecPicture::editHufTable(T*& hufTable)
     return editObject(m_hufTable, VAHuffmanTableBufferType, hufTable);
 }
 
+
+template <class T>
+bool VaapiDecPicture::editHufTable(T& hufTable)
+{
+    return editObject(m_hufTable, VAHuffmanTableBufferType, hufTable);
+}
+
 template <class T>
 bool VaapiDecPicture::editProbTable(T*& probTable)
 {
@@ -108,6 +139,24 @@ bool VaapiDecPicture::newSlice(T*& sliceParam, const void* sliceData, uint32_t s
         sliceParam->slice_data_size = sliceSize;
         sliceParam->slice_data_offset = 0;
         sliceParam->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
+        return true;
+    }
+
+    return false;
+}
+
+template <class T>
+bool VaapiDecPicture::newSlice(T& sliceParam, const void* sliceData, uint32_t sliceSize)
+{
+    sliceParam.slice_data_size = sliceSize;
+    sliceParam.slice_data_offset = 0;
+    sliceParam.slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
+    
+    BufObjectPtr data = createBufferObject(VASliceDataBufferType, sliceSize, sliceData, NULL);
+    BufObjectPtr param = createBufferObject(VASliceParameterBufferType, sliceParam);
+
+    bool ret = addObject(m_slices, param, data);
+    if (ret) {
         return true;
     }
 

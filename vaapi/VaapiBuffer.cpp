@@ -26,6 +26,7 @@
 
 namespace YamiMediaCodec {
 
+#if (0)
 BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     VABufferType type,
     uint32_t size,
@@ -49,6 +50,35 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
         if (!*mapped)
             buf.reset();
     }
+    return buf;
+}
+#endif
+
+BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
+    VABufferType type,
+    uint32_t size,
+    const void* data,
+    void** mapped)
+{
+    BufObjectPtr buf;
+    if (!size || !context || !context->getDisplay()){
+        ERROR("vaapibuffer: can't create buffer");
+        return buf;
+    }
+    DisplayPtr display = context->getDisplay();
+    VABufferID id;
+    VAStatus status = vaCreateBuffer(display->getID(), context->getID(),
+        type, size, 1, (void*)data, &id);
+    if (!checkVaapiStatus(status, "vaCreateBuffer"))
+        return buf;
+    buf.reset(new VaapiBuffer(display, id, size));
+    /*
+    if (mapped) {
+        *mapped = buf->map();
+        if (!*mapped)
+            buf.reset();
+    }
+    */
     return buf;
 }
 

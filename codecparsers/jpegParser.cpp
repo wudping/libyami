@@ -218,6 +218,7 @@ Defaults::Defaults()
         for (size_t i(0); i < DCTSIZE2; ++i)
             m_quantTables[1]->values[i] = values[zigzag8x8[i]];
         m_quantTables[1]->precision = 0; // 1-byte precision
+
     }
 }
 
@@ -327,6 +328,8 @@ bool Parser::nextMarker()
     m_current.marker = static_cast<Marker>(m_input.read(8));
     m_current.position = currentBytePosition() - 1;
     m_current.length = 0; // set by marker parse routines when appropriate
+    
+    printf("dpwu  %s %s %d, m_input.peek(16) len = %d, m_current.marker=0x%x, m_current.position = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_input.peek(16), m_current.marker, m_current.position);
 
     return true;
 }

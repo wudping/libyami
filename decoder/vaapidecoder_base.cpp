@@ -232,8 +232,7 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
 
     VAConfigAttrib attrib;
     attrib.type = VAConfigAttribRTFormat;
-    attrib.value = VA_RT_FORMAT_YUV420;
-
+    attrib.value = 0x0003001f;
 
     ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD,&attrib, 1);
     if (!config) {
@@ -261,7 +260,7 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     m_context = VaapiContext::create(config,
                                        m_videoFormatInfo.width,
                                        m_videoFormatInfo.height,
-                                       0, &surfaces[0], size);
+                                       1, &surfaces[0], size);
 
     if (!m_context) {
         ERROR("create context failed");

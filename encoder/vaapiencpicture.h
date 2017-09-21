@@ -36,6 +36,9 @@ class VaapiEncPicture:public VaapiPicture {
     bool editPicture(T * &picParam);
 
     template < class T >
+    bool editPicture(T &picParam);
+
+    template < class T >
     bool editQMatrix(T * &qMatrix);
 
     template < class T >
@@ -90,6 +93,12 @@ template < class T > bool VaapiEncPicture::editSequence(T * &seqParam)
 }
 
 template < class T > bool VaapiEncPicture::editPicture(T * &picParam)
+{
+    return editObject(m_picture, VAEncPictureParameterBufferType,
+                      picParam);
+}
+
+template < class T > bool VaapiEncPicture::editPicture(T &picParam)
 {
     return editObject(m_picture, VAEncPictureParameterBufferType,
                       picParam);

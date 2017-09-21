@@ -70,12 +70,18 @@ protected:
 
     template<class T>
     bool editObject(BufObjectPtr& object , VABufferType, T*& bufPtr);
+
+    template<class T>
+    bool editObject(BufObjectPtr& object , VABufferType, T& bufPtr);
+
     bool addObject(std::vector<std::pair<BufObjectPtr, BufObjectPtr> >& objects,
                    const BufObjectPtr& param, const BufObjectPtr& data);
     bool addObject(std::vector<BufObjectPtr>& objects, const BufObjectPtr& object);
 
     template<class T>
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
+    template<class T>
+    BufObjectPtr createBufferObject(VABufferType, T& bufPtr);
     inline BufObjectPtr createBufferObject(VABufferType bufType,
         uint32_t size, const void* data, void** mapped);
     VaapiPicture();
@@ -87,12 +93,19 @@ BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr)
     return VaapiBuffer::create(m_context, bufType, bufPtr);
 }
 
+template<class T>
+BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T& bufPtr)
+{
+    return VaapiBuffer::create(m_context, bufType, bufPtr);
+}
+
 BufObjectPtr VaapiPicture::createBufferObject(VABufferType bufType,
     uint32_t size, const void* data, void** mapped)
 {
     return VaapiBuffer::create(m_context, bufType, size, data, mapped);
 }
 
+#if (0)
 template<class T>
 bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& bufPtr)
 {
@@ -103,6 +116,29 @@ bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& b
 
     if (!bufPtr)
         return false;
+
+    return bool(object);
+}
+#endif
+
+template<class T>
+bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& bufPtr)
+{
+    /* already set? It's only one time offer*/
+    if (object)
+        return false;
+    object = createBufferObject(bufType, bufPtr);
+
+    return bool(object);
+}
+
+template<class T>
+bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T& bufPtr)
+{
+    /* already set? It's only one time offer*/
+    if (object)
+        return false;
+    object = createBufferObject(bufType, bufPtr);
 
     return bool(object);
 }
