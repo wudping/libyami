@@ -25,6 +25,7 @@
 #include "codecparsers/jpegParser.h"
 #include "common/common_def.h"
 #include "vaapidecoder_factory.h"
+#include "tinyjpeg.h"
 
 // system headers
 #include <cassert>
@@ -69,6 +70,7 @@ public:
     {
     }
 
+#if (1)
     YamiStatus decode(const uint8_t* data, const uint32_t size)
     {
         using namespace ::YamiParser::JPEG;
@@ -109,6 +111,43 @@ public:
 
         return m_decodeStatus;
     }
+#endif
+
+#if (0)
+    YamiStatus decode(const uint8_t* data, const uint32_t size)
+    {
+        using namespace ::YamiParser::JPEG;
+        
+        printf("dpwu  %s %s %d, size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, size);
+
+        //this mainly for codec flush, jpeg/mjpeg do not have to flush.
+        //just return success for this
+        if (!data || !size)
+            return YAMI_SUCCESS;
+        
+        unsigned int width, height;
+        struct jdec_private *jdec;
+        
+        /* Decompress it */
+        jdec = tinyjpeg_init();
+        if (jdec == NULL)
+          printf("Not enough memory to alloc the structure need for decompressing\n");
+        
+        if (tinyjpeg_parse_header(jdec, data, size)<0)
+          printf(tinyjpeg_get_errorstring(jdec));
+  
+        /* Get the size of the image */
+        tinyjpeg_get_size(jdec, &width, &height);
+  
+        printf("Decoding JPEG image %dx%d...\n", width, height);
+        if (tinyjpeg_decode(jdec) < 0)
+          printf(tinyjpeg_get_errorstring(jdec));
+  
+        tinyjpeg_free(jdec);
+
+        return YAMI_SUCCESS;
+    }
+#endif
 
     const FrameHeader::Shared& frameHeader() const
     {
@@ -172,6 +211,7 @@ private:
 
     Parser::CallbackResult onStartOfFrame()
     {
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         m_decodeStatus = m_startHandler();
         if (m_decodeStatus != YAMI_SUCCESS)
             return Parser::ParseSuspend;
@@ -526,14 +566,18 @@ static uint32_t getFourcc(const FrameHeader::Shared& frame)
 YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
 {
     DEBUG("%s", __func__);
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     m_configBuffer = *buffer;
     m_configBuffer.surfaceNumber = 2;
     m_configBuffer.profile = VAProfileJPEGBaseline;
 
     /* We can't start until decoding has started */
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     if (!m_impl.get())
         return YAMI_SUCCESS;
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     const FrameHeader::Shared frame = m_impl->frameHeader();
 

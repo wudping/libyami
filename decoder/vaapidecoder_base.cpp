@@ -82,6 +82,8 @@ YamiStatus VaapiDecoderBase::start(VideoConfigBuffer* buffer)
     m_configBuffer = *buffer;
     m_configBuffer.data = NULL;
     m_configBuffer.size = 0;
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     m_videoFormatInfo.width = buffer->width;
     m_videoFormatInfo.height = buffer->height;
@@ -105,8 +107,11 @@ YamiStatus VaapiDecoderBase::start(VideoConfigBuffer* buffer)
     else {
         m_videoFormatInfo.fourcc = m_configBuffer.fourcc;
     }
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     status = setupVA(buffer->surfaceNumber, buffer->profile);
+printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     if (status != YAMI_SUCCESS)
         return status;
 
@@ -233,12 +238,15 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     VAConfigAttrib attrib;
     attrib.type = VAConfigAttribRTFormat;
     attrib.value = 0x0003001f;
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD,&attrib, 1);
     if (!config) {
         ERROR("failed to create config");
         return YAMI_FAIL;
     }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     if (!m_externalAllocator) {
         //use internal allocator
@@ -246,6 +254,7 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     } else {
         m_allocator = m_externalAllocator;
     }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     m_configBuffer.surfaceNumber = numSurface;
     m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_configBuffer, m_allocator);
@@ -257,6 +266,7 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     if (surfaces.empty())
         return YAMI_FAIL;
     int size = surfaces.size();
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     m_context = VaapiContext::create(config,
                                        m_videoFormatInfo.width,
                                        m_videoFormatInfo.height,
@@ -291,6 +301,8 @@ void VaapiDecoderBase::setNativeDisplay(NativeDisplay * nativeDisplay)
 {
     if (!nativeDisplay || nativeDisplay->type == NATIVE_DISPLAY_AUTO)
         return;
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     m_externalDisplay = *nativeDisplay;
 }

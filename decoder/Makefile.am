@@ -31,6 +31,9 @@ endif
 
 if BUILD_JPEG_DECODER
 libyami_decoder_source_c += vaapiDecoderJPEG.cpp
+libyami_decoder_source_c += tinyjpeg.c
+libyami_decoder_source_c += va_display.c
+libyami_decoder_source_c += va_display_x11.c
 endif
 
 if BUILD_FAKE_DECODER
@@ -76,6 +79,10 @@ endif
 
 if BUILD_JPEG_DECODER
 libyami_decoder_source_h_priv += vaapiDecoderJPEG.h
+libyami_decoder_source_h_priv += tinyjpeg.h
+libyami_decoder_source_h_priv += tinyjpeg-internal.h
+libyami_decoder_source_h_priv += va_display.h
+libyami_decoder_source_h_priv += sysdeps.h
 endif
 
 if BUILD_FAKE_DECODER

@@ -58,15 +58,23 @@ static bool checkProfileCompatible(const DisplayPtr& display, VAProfile& profile
 {
     int maxNumProfiles, numProfiles;
     VAStatus vaStatus;
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     maxNumProfiles = vaMaxNumProfiles(display->getID());
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     vector<VAProfile> profileList(maxNumProfiles);
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     vaStatus = vaQueryConfigProfiles(display->getID(), &profileList[0], &numProfiles);
     if (!checkVaapiStatus(vaStatus, "vaQueryConfigProfiles"))
         return false;
     assert((numProfiles > 0) && (numProfiles <= maxNumProfiles));
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     profileList.resize(numProfiles);
 
@@ -75,6 +83,8 @@ static bool checkProfileCompatible(const DisplayPtr& display, VAProfile& profile
             return false;
     } else if (!std::count(profileList.begin(), profileList.end(), profile))
         return false;
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     return true;
 }
@@ -88,17 +98,24 @@ ConfigPtr VaapiConfig::create(const DisplayPtr& display,
         return ret;
     VAStatus vaStatus;
     VAConfigID config;
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     if (!checkProfileCompatible(display, profile)){
         ERROR("Unsupport profile");
         return ret;
     }
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     vaStatus = vaCreateConfig(display->getID(), profile, entry, attribList, numAttribs, &config);
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
         return ret;
     ret.reset(new VaapiConfig(display, config));
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     return ret;
 }
 

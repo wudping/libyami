@@ -46,12 +46,20 @@ using std::list;
 
 //helper function
 namespace YamiMediaCodec{
+/*
 static bool vaInit(VADisplay vaDisplay)
 {
    int majorVersion, minorVersion;
    VAStatus vaStatus;
+   printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
    vaStatus= vaInitialize(vaDisplay, &majorVersion, &minorVersion);
+   printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
    return checkVaapiStatus(vaStatus, "vaInitialize");
+}
+*/
+static bool vaInit(VADisplay vaDisplay)
+{
+    return true;
 }
 
 class NativeDisplayBase {
@@ -270,6 +278,8 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
     YamiMediaCodec::AutoLock locker(m_lock);
 
     m_cache.remove_if(expired);
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     //lockup first
     list<WeakPtr<VaapiDisplay> >::iterator it;
@@ -280,6 +290,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
         }
     }
     vaapiDisplay.reset();
+    printf("dpwu  %s %s %d, nativeDisplay.type = %d, NATIVE_DISPLAY_X11 = %d ====\n", __FILE__, __FUNCTION__, __LINE__, nativeDisplay.type, NATIVE_DISPLAY_X11);
 
     //crate new one
     DEBUG("nativeDisplay: (type : %d), (handle : %ld)", nativeDisplay.type, nativeDisplay.handle);
@@ -293,12 +304,15 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
             vaDisplay = vaGetDisplay((Display*)(nativeDisplayObj->nativeHandle()));
         if (vaDisplay)
             INFO("use vaapi x11 backend");
+        
+        printf("dpwu  %s %s %d vaapi x11, nativeDisplay.type = 0x%x, NATIVE_DISPLAY_X11 = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, nativeDisplay.type, NATIVE_DISPLAY_X11);
         if(vaDisplay || nativeDisplay.type == NATIVE_DISPLAY_X11)
             break;
         INFO("try to init va with x11 display (%p) but failed", (Display*)(nativeDisplayObj->nativeHandle()));
         // NATIVE_DISPLAY_AUTO continue, no break
 #endif
     case NATIVE_DISPLAY_DRM:
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         nativeDisplayObj.reset (new NativeDisplayDrm());
         if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
 #ifndef ANDROID
@@ -307,6 +321,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
         INFO("use vaapi drm backend");
         break;
     case NATIVE_DISPLAY_VA:
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         nativeDisplayObj.reset (new NativeDisplayVADisplay());
         if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
             vaDisplay = (VADisplay)nativeDisplayObj->nativeHandle();
@@ -315,25 +330,32 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
     default:
         break;
     }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     if (vaDisplay == NULL) {
         ERROR("vaGetDisplay failed.");
         return vaapiDisplay;
     }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     if (nativeDisplay.type == NATIVE_DISPLAY_VA || vaInit(vaDisplay)) {
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         DisplayPtr temp(new VaapiDisplay(nativeDisplayObj, vaDisplay));
         vaapiDisplay = temp;
     }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     if (vaapiDisplay) {
         WeakPtr<VaapiDisplay> weak(vaapiDisplay);
         m_cache.push_back(weak);
     }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+    
     return vaapiDisplay;
 }
 
 DisplayPtr VaapiDisplay::create(const NativeDisplay& display)
 {
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     return DisplayCache::getInstance()->createDisplay(display);
 }
 } //YamiMediaCodec
