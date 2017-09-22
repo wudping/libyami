@@ -36,6 +36,8 @@
 #ifndef __JPEGDEC_H__
 #define __JPEGDEC_H__
 
+#include <va/va.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,6 +55,7 @@ enum tinyjpeg_fmt {
    TINYJPEG_FMT_YUV420P,
 };
 
+uint8_t* mapSurfaceToImageXX(VADisplay display, VASurfaceID surface, VAImage* image);
 struct jdec_private *tinyjpeg_init(void);
 void tinyjpeg_free(struct jdec_private *priv);
 

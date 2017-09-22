@@ -61,7 +61,7 @@ public:
 protected:
     VaapiDecPicture();
 
-private:
+public:
     virtual bool doRender();
 
     BufObjectPtr m_picture;

@@ -25,6 +25,9 @@
 #include "vaapidisplay.h"
 
 namespace YamiMediaCodec {
+extern VADisplay va_dpy;
+extern VAConfigID config_id;
+extern VAContextID context_id;
 
 #if (0)
 BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
@@ -67,8 +70,14 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     }
     DisplayPtr display = context->getDisplay();
     VABufferID id;
+    printf("dpwu  %s %s %d, type = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, type);
+    #if (0)
     VAStatus status = vaCreateBuffer(display->getID(), context->getID(),
         type, size, 1, (void*)data, &id);
+    #else
+    VAStatus status = vaCreateBuffer(va_dpy, context_id,
+        type, size, 1, (void*)data, &id);
+    #endif
     if (!checkVaapiStatus(status, "vaCreateBuffer"))
         return buf;
     buf.reset(new VaapiBuffer(display, id, size));

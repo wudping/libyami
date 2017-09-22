@@ -47,7 +47,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
-#include <va/va.h>
 #include <va/va_dec_jpeg.h>
 #include "va_display.h"
 
@@ -579,6 +578,7 @@ uint8_t* mapSurfaceToImageXX(VADisplay display, VASurfaceID surface, VAImage* im
     return p;
 }
 
+#if (0)
 int tinyjpeg_decode(struct jdec_private *priv)
 {
 #define CHECK_VASTATUS(va_status,func)                                  \
@@ -930,6 +930,291 @@ int tinyjpeg_decode(struct jdec_private *priv)
     getchar();
     return 0;
 }
+#endif
+
+int tinyjpeg_decode(struct jdec_private *priv)
+{
+#define CHECK_VASTATUS(va_status,func)                                  \
+    if (va_status != VA_STATUS_SUCCESS) {                                   \
+        fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
+        exit(1);                                                            \
+    }
+
+    VAEntrypoint entrypoints[5];
+    int num_entrypoints,vld_entrypoint;
+    VAConfigAttrib attrib;
+    VAConfigID config_id;
+    VASurfaceID surface_id;
+    VAContextID context_id;
+    VABufferID pic_param_buf,iqmatrix_buf,huffmantable_buf,slice_param_buf,slice_data_buf;
+    int major_ver, minor_ver;
+    VADisplay va_dpy;
+    VAStatus va_status;
+    int max_h_factor, max_v_factor;
+    int putsurface=1;
+    unsigned int i, j;
+
+    int surface_type;
+/*    char *type;
+    int ChromaTypeIndex;
+*/
+    VASurfaceAttrib forcc;
+    forcc.type =VASurfaceAttribPixelFormat;
+    forcc.flags=VA_SURFACE_ATTRIB_SETTABLE;
+    forcc.value.type=VAGenericValueTypeInteger;
+     
+
+    va_dpy = va_open_display();
+    va_status = vaInitialize(va_dpy, &major_ver, &minor_ver);
+    assert(va_status == VA_STATUS_SUCCESS);
+    
+    va_status = vaQueryConfigEntrypoints(va_dpy, VAProfileJPEGBaseline, entrypoints, 
+                             &num_entrypoints);
+    CHECK_VASTATUS(va_status, "vaQueryConfigEntrypoints");
+
+    for	(vld_entrypoint = 0; vld_entrypoint < num_entrypoints; vld_entrypoint++) {
+        if (entrypoints[vld_entrypoint] == VAEntrypointVLD)
+            break;
+    }
+    if (vld_entrypoint == num_entrypoints) {
+        /* not find VLD entry point */
+        assert(0);
+    }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+    /* Assuming finding VLD, find out the format for the render target */
+    attrib.type = VAConfigAttribRTFormat;
+    vaGetConfigAttributes(va_dpy, VAProfileJPEGBaseline, VAEntrypointVLD,
+                          &attrib, 1);
+    if ((attrib.value & VA_RT_FORMAT_YUV420) == 0) {
+        /* not find desired YUV420 RT format */
+        assert(0);
+    }
+    
+    va_status = vaCreateConfig(va_dpy, VAProfileJPEGBaseline, VAEntrypointVLD,
+                              &attrib, 1,&config_id);
+    CHECK_VASTATUS(va_status, "vaQueryConfigEntrypoints");
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+    while (next_image_found){  
+       VAPictureParameterBufferJPEGBaseline pic_param;
+       memset(&pic_param, 0, sizeof(pic_param));
+       pic_param.picture_width = priv->width[scan_num];
+       pic_param.picture_height = priv->height[scan_num];
+       pic_param.num_components = priv->nf_components;
+
+
+       for (i=0; i<pic_param.num_components; i++) { // tinyjpeg support 3 components only, does it match va?
+           pic_param.components[i].component_id = priv->component_infos[i].cid;
+           pic_param.components[i].h_sampling_factor = priv->component_infos[i].Hfactor;
+           pic_param.components[i].v_sampling_factor = priv->component_infos[i].Vfactor;
+           pic_param.components[i].quantiser_table_selector = priv->component_infos[i].quant_table_index;
+       }
+       
+       surface_type = VA_RT_FORMAT_YUV420;
+       forcc.value.value.i = VA_FOURCC_IMC3;
+       va_status = vaCreateSurfaces(va_dpy,surface_type,
+                                    priv->width[scan_num],priv->height[scan_num], //alignment?
+                                    &surface_id, 1, &forcc, 1);
+       CHECK_VASTATUS(va_status, "vaCreateSurfaces");
+  
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+       /* Create a context for this decode pipe */
+       va_status = vaCreateContext(va_dpy, config_id,
+                                  priv->width[scan_num], priv->height[scan_num], // alignment?
+                                  VA_PROGRESSIVE,
+                                  &surface_id,
+                                  1,
+                                  &context_id);
+       CHECK_VASTATUS(va_status, "vaCreateContext");
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+       va_status = vaCreateBuffer(va_dpy, context_id,
+                                 VAPictureParameterBufferType, // VAPictureParameterBufferJPEGBaseline?
+                                 sizeof(VAPictureParameterBufferJPEGBaseline),
+                                 1, &pic_param,
+                                 &pic_param_buf);
+       CHECK_VASTATUS(va_status, "vaCreateBuffer");
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+       VAIQMatrixBufferJPEGBaseline iq_matrix;
+       const unsigned int num_quant_tables =
+           MIN(COMPONENTS, ARRAY_ELEMS(iq_matrix.load_quantiser_table));
+       // todo, only mask it if non-default quant matrix is used. do we need build default quant matrix?
+       memset(&iq_matrix, 0, sizeof(VAIQMatrixBufferJPEGBaseline));
+       printf("dpwu  %s %s %d, num_quant_tables = %d ====\n", __FILE__, __FUNCTION__, __LINE__, num_quant_tables);
+       for (i = 0; i < num_quant_tables; i++) {
+           if (!priv->Q_tables_valid[i])
+               continue;
+           iq_matrix.load_quantiser_table[i] = 1;
+           for (j = 0; j < 64; j++){
+               iq_matrix.quantiser_table[i][j] = priv->Q_tables[i][j];
+               printf("%d, ", iq_matrix.quantiser_table[i][j]);
+           }
+           printf("\n");
+       }
+       va_status = vaCreateBuffer(va_dpy, context_id,
+                                 VAIQMatrixBufferType, // VAIQMatrixBufferJPEGBaseline?
+                                 sizeof(VAIQMatrixBufferJPEGBaseline),
+                                 1, &iq_matrix,
+                                 &iqmatrix_buf );
+       CHECK_VASTATUS(va_status, "vaCreateBuffer");
+       
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+       VAHuffmanTableBufferJPEGBaseline huffman_table;
+       const unsigned int num_huffman_tables =
+           MIN(COMPONENTS, ARRAY_ELEMS(huffman_table.load_huffman_table));
+       memset(&huffman_table, 0, sizeof(VAHuffmanTableBufferJPEGBaseline));
+       assert(sizeof(huffman_table.huffman_table[0].num_dc_codes) ==
+           sizeof(priv->HTDC[0].bits));
+          assert(sizeof(huffman_table.huffman_table[0].dc_values[0]) ==
+           sizeof(priv->HTDC[0].values[0]));
+       for (i = 0; i < num_huffman_tables; i++) {
+           if (!priv->HTDC_valid[i] || !priv->HTAC_valid[i])
+               continue;
+           huffman_table.load_huffman_table[i] = 1;
+           memcpy(huffman_table.huffman_table[i].num_dc_codes, priv->HTDC[i].bits,
+                  sizeof(huffman_table.huffman_table[i].num_dc_codes));
+           memcpy(huffman_table.huffman_table[i].dc_values, priv->HTDC[i].values,
+                  sizeof(huffman_table.huffman_table[i].dc_values));
+           memcpy(huffman_table.huffman_table[i].num_ac_codes, priv->HTAC[i].bits,
+                  sizeof(huffman_table.huffman_table[i].num_ac_codes));   
+           memcpy(huffman_table.huffman_table[i].ac_values, priv->HTAC[i].values,
+                  sizeof(huffman_table.huffman_table[i].ac_values));
+           memset(huffman_table.huffman_table[i].pad, 0,
+                  sizeof(huffman_table.huffman_table[i].pad));
+       }
+       va_status = vaCreateBuffer(va_dpy, context_id,
+                                 VAHuffmanTableBufferType, // VAHuffmanTableBufferJPEGBaseline?
+                                 sizeof(VAHuffmanTableBufferJPEGBaseline),
+                                 1, &huffman_table,
+                                 &huffmantable_buf );
+       CHECK_VASTATUS(va_status, "vaCreateBuffer");
+    
+       // one slice for whole image?
+       max_h_factor = priv->component_infos[0].Hfactor;
+       max_v_factor = priv->component_infos[0].Vfactor;
+       static VASliceParameterBufferJPEGBaseline slice_param;
+       slice_param.slice_data_size = (priv->stream_scan - priv->stream);
+       int possition = priv->stream - priv->stream_begin;
+       printf("dpwu  %s %s %d, slice_param.slice_data_size = %d, possition = %d ====\n", __FILE__, __FUNCTION__, __LINE__, slice_param.slice_data_size, possition);
+       int ii = 0;
+/*       for(ii; ii < 1024; ii++){
+           printf("0x%x ", priv->stream[ii]);
+       }
+       printf("\n");
+  */
+       slice_param.slice_data_offset = 0;
+       slice_param.slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
+       slice_param.slice_horizontal_position = 0;    
+       slice_param.slice_vertical_position = 0;    
+       slice_param.num_components = priv->cur_sos.nr_components;
+       for (i = 0; i < slice_param.num_components; i++) {
+           slice_param.components[i].component_selector = priv->cur_sos.components[i].component_id; /* FIXME: set to values specified in SOS  */
+           slice_param.components[i].dc_table_selector = priv->cur_sos.components[i].dc_selector;  /* FIXME: set to values specified in SOS  */
+           slice_param.components[i].ac_table_selector = priv->cur_sos.components[i].ac_selector;  /* FIXME: set to values specified in SOS  */
+       }
+       slice_param.restart_interval = priv->restart_interval;
+       slice_param.num_mcus = ((priv->width[scan_num]+max_h_factor*8-1)/(max_h_factor*8))*
+                             ((priv->height[scan_num]+max_v_factor*8-1)/(max_v_factor*8)); // ?? 720/16? 
+ 
+       va_status = vaCreateBuffer(va_dpy, context_id,
+                                 VASliceParameterBufferType, // VASliceParameterBufferJPEGBaseline?
+                                 sizeof(VASliceParameterBufferJPEGBaseline),
+                                 1,
+                                 &slice_param, &slice_param_buf);
+       CHECK_VASTATUS(va_status, "vaCreateBuffer");
+
+       va_status = vaCreateBuffer(va_dpy, context_id,
+                                 VASliceDataBufferType,
+                                 priv->stream_scan - priv->stream,
+                                 1,
+                                 (void*)priv->stream, // jpeg_clip,
+                                 &slice_data_buf);
+       CHECK_VASTATUS(va_status, "vaCreateBuffer");
+
+       va_status = vaBeginPicture(va_dpy, context_id, surface_id);
+       CHECK_VASTATUS(va_status, "vaBeginPicture");   
+
+       va_status = vaRenderPicture(va_dpy,context_id, &pic_param_buf, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+   
+       va_status = vaRenderPicture(va_dpy,context_id, &iqmatrix_buf, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+
+       va_status = vaRenderPicture(va_dpy,context_id, &huffmantable_buf, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+   
+       va_status = vaRenderPicture(va_dpy,context_id, &slice_param_buf, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+    
+       va_status = vaRenderPicture(va_dpy,context_id, &slice_data_buf, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+    
+       va_status = vaEndPicture(va_dpy,context_id);
+       CHECK_VASTATUS(va_status, "vaEndPicture");
+
+/*
+       va_status = vaSyncSurface(va_dpy, surface_id);
+       CHECK_VASTATUS(va_status, "vaSyncSurface");
+*/
+       if (putsurface) {
+           VARectangle src_rect, dst_rect;
+
+           src_rect.x      = 0;
+           src_rect.y      = 0;
+           src_rect.width  = priv->width[scan_num];
+           src_rect.height = priv->height[scan_num];
+           dst_rect        = src_rect;
+
+           va_status = va_put_surface(va_dpy, surface_id, &src_rect, &dst_rect);
+           CHECK_VASTATUS(va_status, "vaPutSurface");
+       }
+       scan_num++;
+       VAImage image;
+       uint8_t* buf = mapSurfaceToImageXX(va_dpy, surface_id, &image);
+       FILE* pFile; 
+       printf("dpwu xx  %s %s %d, image.pitches[0] = %d, image.pitches[1] = %d, image.pitches[2] = %d, image.offsets[0]=%d, image.offsets[1]=%d, image.offsets[2]=%d, image.data_size = %d, image.num_planes = %d, image.width = %d, image.height = %d ====\n", __FILE__, __FUNCTION__, __LINE__, image.pitches[0], image.pitches[1], image.pitches[2], image.offsets[0], image.offsets[1], image.offsets[2], image.data_size, image.num_planes, image.width, image.height);
+       for(ii = 0; ii < image.pitches[0]; ii++){
+            printf("0x%x ", buf[ii]);
+       }
+       pFile = fopen("dd_myfile_5120x3840.imc3" , "wb");
+       uint8_t *originPos = buf; 
+       buf = originPos + image.offsets[0];
+       for(ii = 0; ii < image.height; ii++){
+           fwrite(buf, 1 , image.width, pFile);
+           buf += image.pitches[0];
+       }
+       buf = originPos + image.offsets[1];
+       for(ii = 0; ii < image.height/2; ii++){
+           fwrite(buf, 1 , image.width, pFile);
+           buf += image.pitches[1];
+       }
+       buf = originPos + image.offsets[2];
+       for(ii = 0; ii < image.height/2; ii++){
+           fwrite(buf, 1 , image.width, pFile);
+           buf += image.pitches[2];
+       }
+       fclose(pFile);
+    
+       vaDestroySurfaces(va_dpy,&surface_id,1);
+       vaDestroyConfig(va_dpy,config_id);
+       vaDestroyContext(va_dpy,context_id);
+
+       /*
+       parse_JFIF(priv,priv->stream);
+       if(priv->width[scan_num] == 0 && priv->height[scan_num] == 0)
+          break;
+       */
+    }
+   // va_close_display(va_dpy);
+    vaTerminate(va_dpy);
+    printf("press any key to exit23\n");
+    getchar();
+    return 0;
+}
+
 const char *tinyjpeg_get_errorstring(struct jdec_private *priv)
 {
   /* FIXME: the error string must be store in the context */
