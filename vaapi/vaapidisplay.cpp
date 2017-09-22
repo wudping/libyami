@@ -46,7 +46,7 @@ using std::list;
 
 //helper function
 namespace YamiMediaCodec{
-/*
+
 static bool vaInit(VADisplay vaDisplay)
 {
    int majorVersion, minorVersion;
@@ -55,11 +55,6 @@ static bool vaInit(VADisplay vaDisplay)
    vaStatus= vaInitialize(vaDisplay, &majorVersion, &minorVersion);
    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
    return checkVaapiStatus(vaStatus, "vaInitialize");
-}
-*/
-static bool vaInit(VADisplay vaDisplay)
-{
-    return true;
 }
 
 class NativeDisplayBase {

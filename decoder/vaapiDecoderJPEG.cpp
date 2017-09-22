@@ -44,6 +44,8 @@ using ::std::bind;
 using ::std::ref;
 
 namespace YamiMediaCodec {
+uint8_t *g_data;
+size_t g_size;
 
 struct Slice {
     Slice() : data(NULL), start(0) , length(0) { }
@@ -519,6 +521,8 @@ YamiStatus VaapiDecoderJPEG::decode(VideoDecodeBuffer* buffer)
         m_impl.reset(new VaapiDecoderJPEG::Impl(
             bind(&VaapiDecoderJPEG::start, ref(*this), &m_configBuffer),
             bind(&VaapiDecoderJPEG::finish, ref(*this))));
+    g_data = buffer->data;
+    g_size = buffer->size;
 
     return m_impl->decode(buffer->data, buffer->size);
 }
@@ -611,6 +615,7 @@ YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
     return YAMI_DECODE_FORMAT_CHANGE;
 }
 
+#if (0)
 YamiStatus VaapiDecoderJPEG::finish()
 {
     if (!m_impl->frameHeader()) {
@@ -665,6 +670,33 @@ YamiStatus VaapiDecoderJPEG::finish()
     if (status != YAMI_SUCCESS)
         return status;
 
+    return YAMI_SUCCESS;
+}
+#endif
+
+YamiStatus VaapiDecoderJPEG::finish()
+{
+    using namespace ::YamiParser::JPEG;
+    
+    unsigned int width, height;
+    struct jdec_private *jdec;
+    
+    /* Decompress it */
+    jdec = tinyjpeg_init();
+    if (jdec == NULL)
+      printf("Not enough memory to alloc the structure need for decompressing\n");
+
+    if (tinyjpeg_parse_header(jdec, g_data, g_size)<0)
+      printf(tinyjpeg_get_errorstring(jdec));
+
+    /* Get the size of the image */
+    tinyjpeg_get_size(jdec, &width, &height);
+
+    printf("Decoding JPEG image %dx%d...\n", width, height);
+    if (tinyjpeg_decode(jdec) < 0)
+      printf(tinyjpeg_get_errorstring(jdec));
+
+    tinyjpeg_free(jdec);
     return YAMI_SUCCESS;
 }
 
