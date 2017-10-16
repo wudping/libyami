@@ -495,66 +495,6 @@ YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
     return YAMI_DECODE_FORMAT_CHANGE;
 }
 
-#if (0)
-YamiStatus VaapiDecoderJPEG::finish()
-{
-    if (!m_impl->frameHeader()) {
-        ERROR("Start of Frame (SOF) not found");
-        return YAMI_FAIL;
-    }
-
-    if (!m_impl->scanHeader()) {
-        ERROR("Start of Scan (SOS) not found");
-        return YAMI_FAIL;
-    }
-
-    m_picture = createPicture(m_currentPTS);
-    if (!m_picture) {
-        ERROR("Could not create a VAAPI picture.");
-        return YAMI_FAIL;
-    }
-
-    m_picture->m_timeStamp = m_currentPTS;
-
-    YamiStatus status;
-
-    status = fillSliceParam();
-    if (status !=  YAMI_SUCCESS) {
-        ERROR("Failed to load VAAPI slice parameters.");
-        return status;
-    }
-
-    status = fillPictureParam();
-    if (status !=  YAMI_SUCCESS) {
-        ERROR("Failed to load VAAPI picture parameters");
-        return status;
-    }
-
-    status = loadQuantizationTables();
-    if (status !=  YAMI_SUCCESS) {
-        ERROR("Failed to load VAAPI quantization tables");
-        return status;
-    }
-
-    status = loadHuffmanTables();
-
-    if (status != YAMI_SUCCESS) {
-        ERROR("Failed to load VAAPI huffman tables");
-        return status;
-    }
-
-    if (!m_picture->decode())
-        return YAMI_FAIL;
-
-    status = outputPicture(m_picture);
-    if (status != YAMI_SUCCESS)
-        return status;
-
-    return YAMI_SUCCESS;
-}
-#endif
-
-
 #if (1)
 YamiStatus VaapiDecoderJPEG::finish()
 {
@@ -603,173 +543,24 @@ YamiStatus VaapiDecoderJPEG::finish()
         return status;
     }
 
-#if (0)
-    {  
-#define CHECK_VASTATUS(va_status,func)                                  \
-        if (va_status != VA_STATUS_SUCCESS) {                                   \
-            fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
-            exit(1);                                                            \
-        }
-        VAStatus va_status;
-        va_dpy = getDisplayID();
-        config_id = getConfigureID();
-        surface_id = getSurfaceID();
-        context_id = getContextID();
-        VABufferID bufferID = VA_INVALID_ID;
-        va_status = vaBeginPicture(va_dpy, context_id, surface_id);
-        CHECK_VASTATUS(va_status, "vaBeginPicture");   
-
-        bufferID = m_picture->m_picture->getID();
-        va_status = vaRenderPicture(va_dpy,context_id, /*&pic_param_buf*/&bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        bufferID = m_picture->m_iqMatrix->getID();
-        va_status = vaRenderPicture(va_dpy,context_id, /*&iqmatrix_buf*/ &bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        bufferID = m_picture->m_hufTable->getID();
-        va_status = vaRenderPicture(va_dpy,context_id, /*&huffmantable_buf*/&bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        std::pair <BufObjectPtr,BufObjectPtr> &slice = m_picture->m_slices[0];
-        bufferID = slice.first->getID();
-        va_status = vaRenderPicture(va_dpy,context_id, /*&slice_param_buf*/&bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        bufferID = slice.second->getID();
-        va_status = vaRenderPicture(va_dpy, context_id, /*&slice_data_buf*/&bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        va_status = vaEndPicture(va_dpy,context_id);
-        CHECK_VASTATUS(va_status, "vaEndPicture");
-/*
-        va_status = vaSyncSurface(va_dpy, surface_id);
-        CHECK_VASTATUS(va_status, "vaSyncSurface");
-*/
-        surfaceToFile(va_dpy, surface_id);
-
-        vaDestroySurfaces(va_dpy,&surface_id,1);
-        vaDestroyConfig(va_dpy,config_id);
-        vaDestroyContext(va_dpy,context_id);
-        printf("press any key to exit23\n");
-        getchar();
-    }
-#else
     if (!m_picture->decode())
         return YAMI_FAIL;
     
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+    printf("press any key to continue\n");
+    getchar();
     va_dpy = getDisplayID();
     surfaceToFile(va_dpy, m_picture->getSurfaceID());
+    
+    printf("press any key to exit23\n");
+    getchar();
 
     status = outputPicture(m_picture);
     if (status != YAMI_SUCCESS)
         return status;
-#endif
-
 
     return YAMI_SUCCESS;
 }
-#endif
-
-#if (0) //ok
-YamiStatus VaapiDecoderJPEG::finish()
-{
-    if (!m_impl->frameHeader()) {
-        ERROR("Start of Frame (SOF) not found");
-        return YAMI_FAIL;
-    }
-
-    if (!m_impl->scanHeader()) {
-        ERROR("Start of Scan (SOS) not found");
-        return YAMI_FAIL;
-    }
-
-    m_picture = createPicture(m_currentPTS);
-    if (!m_picture) {
-        ERROR("Could not create a VAAPI picture.");
-        return YAMI_FAIL;
-    }
-
-    m_picture->m_timeStamp = m_currentPTS;
-
-    YamiStatus status;
-    status = fillSliceParam();
-    if (status !=  YAMI_SUCCESS) {
-        ERROR("Failed to load VAAPI slice parameters.");
-        return status;
-    }
-
-    status = fillPictureParam();
-    if (status !=  YAMI_SUCCESS) {
-        ERROR("Failed to load VAAPI picture parameters");
-        return status;
-    }
-
-    status = loadQuantizationTables();
-    if (status !=  YAMI_SUCCESS) {
-        ERROR("Failed to load VAAPI quantization tables");
-        return status;
-    }
-
-    status = loadHuffmanTables();
-    if (status != YAMI_SUCCESS) {
-        ERROR("Failed to load VAAPI huffman tables");
-        return status;
-    }
-
-    {  
-#define CHECK_VASTATUS(va_status,func)                                  \
-        if (va_status != VA_STATUS_SUCCESS) {                                   \
-            fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
-            exit(1);                                                            \
-        }
-        VAStatus va_status;
-        va_dpy = getDisplayID();
-        config_id = getConfigureID();
-        surface_id = getSurfaceID();
-        context_id = getContextID();
-        VABufferID bufferID = VA_INVALID_ID;
-        va_status = vaBeginPicture(va_dpy, context_id, surface_id);
-        CHECK_VASTATUS(va_status, "vaBeginPicture");   
-
-        bufferID = m_picture->m_picture->getID();
-        va_status = vaRenderPicture(va_dpy,context_id, /*&pic_param_buf*/&bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        bufferID = m_picture->m_iqMatrix->getID();
-        va_status = vaRenderPicture(va_dpy,context_id, /*&iqmatrix_buf*/ &bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        bufferID = m_picture->m_hufTable->getID();
-        va_status = vaRenderPicture(va_dpy,context_id, /*&huffmantable_buf*/&bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        std::pair <BufObjectPtr,BufObjectPtr> &slice = m_picture->m_slices[0];
-        bufferID = slice.first->getID();
-        va_status = vaRenderPicture(va_dpy,context_id, /*&slice_param_buf*/&bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        bufferID = slice.second->getID();
-        va_status = vaRenderPicture(va_dpy, context_id, /*&slice_data_buf*/&bufferID, 1);
-        CHECK_VASTATUS(va_status, "vaRenderPicture");
-
-        va_status = vaEndPicture(va_dpy,context_id);
-        CHECK_VASTATUS(va_status, "vaEndPicture");
-
-        va_status = vaSyncSurface(va_dpy, surface_id);
-        CHECK_VASTATUS(va_status, "vaSyncSurface");
-
-        surfaceToFile(va_dpy, surface_id);
-
-        vaDestroySurfaces(va_dpy,&surface_id,1);
-        vaDestroyConfig(va_dpy,config_id);
-        vaDestroyContext(va_dpy,context_id);
-    }
-    printf("press any key to exit23\n");
-    getchar();
-    return YAMI_SUCCESS;
-}
-
 #endif
 
 
