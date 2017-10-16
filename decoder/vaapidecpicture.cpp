@@ -74,32 +74,30 @@ bool VaapiDecPicture::doRender()
             fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
             exit(1);                                                            \
         }
-        VAStatus va_status;
-        VABufferID bufferID = VA_INVALID_ID;
-        //VAContextID va_dpy = m_display->getID();
-        //VADisplay context_id = m_context->getID();
         
-                bufferID = m_picture->getID();
-                va_status = vaRenderPicture(m_display->getID(), m_context->getID(), /*&pic_param_buf*/&bufferID, 1);
-                CHECK_VASTATUS(va_status, "vaRenderPicture");
-        
-                bufferID = m_iqMatrix->getID();
-                va_status = vaRenderPicture(m_display->getID(),m_context->getID(), /*&iqmatrix_buf*/ &bufferID, 1);
-                CHECK_VASTATUS(va_status, "vaRenderPicture");
-        
-                bufferID = m_hufTable->getID();
-                va_status = vaRenderPicture(m_display->getID(),m_context->getID(), /*&huffmantable_buf*/&bufferID, 1);
-                CHECK_VASTATUS(va_status, "vaRenderPicture");
-        
-                std::pair <BufObjectPtr,BufObjectPtr> &slice = m_slices[0];
+        std::pair <BufObjectPtr,BufObjectPtr> &slice = m_slices[0];
+        RENDER_OBJECT(m_picture);
+        RENDER_OBJECT(m_iqMatrix);
+        RENDER_OBJECT(m_hufTable);
+        #if (1)
+        /*
+            printf("dpwu  %s %s %d, slice.first->getID() = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, slice.first->getID());
+            RENDER_OBJECT(slice.first);
+            printf("dpwu  %s %s %d, slice.second->getID() = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, slice.second->getID());
+            RENDER_OBJECT(slice.second);
+            */
+            RENDER_OBJECT(slice);
+        #else
+                VAStatus va_status;
+                VABufferID bufferID = VA_INVALID_ID;
                 bufferID = slice.first->getID();
-                va_status = vaRenderPicture(m_display->getID(),m_context->getID(), /*&slice_param_buf*/&bufferID, 1);
+                va_status = vaRenderPicture(m_display->getID(),m_context->getID(), &bufferID, 1);
                 CHECK_VASTATUS(va_status, "vaRenderPicture");
         
                 bufferID = slice.second->getID();
-                va_status = vaRenderPicture(m_display->getID(), m_context->getID(), /*&slice_data_buf*/&bufferID, 1);
+                va_status = vaRenderPicture(m_display->getID(), m_context->getID(), &bufferID, 1);
                 CHECK_VASTATUS(va_status, "vaRenderPicture");
-
+        #endif
     }
 #endif
     return true;

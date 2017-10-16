@@ -27,6 +27,9 @@
 #include <va/va.h>
 #include <vector>
 #include <utility>
+#include <stdio.h>
+#include <stdlib.h>
+#include <utility> 
 
 namespace YamiMediaCodec{
 
@@ -114,14 +117,18 @@ bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& b
 #define RENDER_OBJECT(obj) \
 do { if (!VaapiPicture::render(obj)) { ERROR("render " #obj " failed"); return false;} } while(0)
 
+
+
 template <class O>
 bool VaapiPicture::render(std::vector<O>& objects)
 {
     bool ret = true;
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
-    for (uint32_t i = 0; i < objects.size(); i++)
+    for (uint32_t i = 0; i < objects.size(); i++){
+        printf("dpwu  %s %s %d, i = %d ====\n", __FILE__, __FUNCTION__, __LINE__, i);
         ret &= render(objects[i]);
-
+    }
     objects.clear(); // slient work around for psb drv to delete VABuffer
     return ret;
 }

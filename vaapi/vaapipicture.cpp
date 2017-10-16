@@ -49,6 +49,8 @@ bool VaapiPicture::render()
         ERROR("bug: no surface to encode");
         return false;
     }
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     VAStatus status;
     status = vaBeginPicture(m_display->getID(), m_context->getID(), m_surface->getID());
@@ -67,7 +69,7 @@ bool VaapiPicture::render(BufObjectPtr& buffer)
 {
     VAStatus status = VA_STATUS_SUCCESS;
     VABufferID bufferID = VA_INVALID_ID;
-
+    
     if (!buffer)
         return true;
 
@@ -81,7 +83,7 @@ bool VaapiPicture::render(BufObjectPtr& buffer)
     if (!checkVaapiStatus(status, "vaRenderPicture failed"))
         return false;
 
-    buffer.reset();             // silently work  arouond for psb
+    //buffer.reset();             // silently work  arouond for psb
     return true;
 }
 
