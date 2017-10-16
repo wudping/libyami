@@ -81,7 +81,7 @@ bool VaapiPicture::render(BufObjectPtr& buffer)
     if (!checkVaapiStatus(status, "vaRenderPicture failed"))
         return false;
 
-    buffer.reset();             // silently work  arouond for psb
+    //buffer.reset();             // silently work  arouond for psb
     return true;
 }
 
