@@ -29,6 +29,7 @@ friend class VaapiContext;
 public:
     static ConfigPtr create(const DisplayPtr&, VAProfile, VAEntrypoint,
                     VAConfigAttrib *attribList, int numAttribs);
+    VAContextID getID() const { return m_config; }
     ~VaapiConfig();
 private:
     VaapiConfig(const DisplayPtr&, VAConfigID);

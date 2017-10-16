@@ -43,6 +43,12 @@ using ::std::bind;
 using ::std::ref;
 
 namespace YamiMediaCodec {
+    uint8_t *g_data;
+    size_t g_size;
+    VADisplay va_dpy;
+    VASurfaceID surface_id;
+    VAConfigID config_id;
+    VAContextID context_id;
 
 struct Slice {
     Slice() : data(NULL), start(0) , length(0) { }
@@ -51,6 +57,54 @@ struct Slice {
     uint32_t start;
     uint32_t length;
 };
+
+//uint8_t* mapSurfaceToImageXX(VADisplay display, VASurfaceID surface, VAImage& image)
+uint8_t* mapSurfaceToImageXXZZ(VADisplay display, VASurfaceID surface, VAImage* image)
+{
+    uint8_t* p = NULL;
+    VAStatus status = vaDeriveImage(display, surface, image);
+    if (VA_STATUS_SUCCESS != status) {
+        printf("dpwu  %s %s %d error ====\n", __FILE__, __FUNCTION__, __LINE__);
+        return NULL;
+    }
+    status = vaMapBuffer(display, image->buf, (void**)&p);
+    if (VA_STATUS_SUCCESS != status) {
+        printf("dpwu  %s %s %d error ====\n", __FILE__, __FUNCTION__, __LINE__);
+        return NULL;
+    }
+    return p;
+}
+
+void surfaceToFile(VADisplay va_dpy, VASurfaceID surface_id)
+{
+    VAImage image;
+    uint8_t* buf = mapSurfaceToImageXXZZ(va_dpy, surface_id, &image);
+    FILE* pFile; 
+    //printf("dpwu xx  %s %s %d, image.pitches[0] = %d, image.pitches[1] = %d, image.pitches[2] = %d, image.offsets[0]=%d, image.offsets[1]=%d, image.offsets[2]=%d, image.data_size = %d, image.num_planes = %d, image.width = %d, image.height = %d ====\n", __FILE__, __FUNCTION__, __LINE__, image.pitches[0], image.pitches[1], image.pitches[2], image.offsets[0], image.offsets[1], image.offsets[2], image.data_size, image.num_planes, image.width, image.height);
+    uint32_t ii = 0;
+    for(ii = 0; ii < image.pitches[0]; ii++){
+         printf("0x%x ", buf[ii]);
+    }
+    pFile = fopen("dd_myfile_5120x3840.imc3" , "wb");
+    uint8_t *originPos = buf; 
+    buf = originPos + image.offsets[0];
+    for(ii = 0; ii < image.height; ii++){
+        fwrite(buf, 1 , image.width, pFile);
+        buf += image.pitches[0];
+    }
+    buf = originPos + image.offsets[1];
+    for(ii = 0; ii < image.height/2; ii++){
+        fwrite(buf, 1 , image.width, pFile);
+        buf += image.pitches[1];
+    }
+    buf = originPos + image.offsets[2];
+    for(ii = 0; ii < image.height/2; ii++){
+        fwrite(buf, 1 , image.width, pFile);
+        buf += image.pitches[2];
+    }
+    fclose(pFile);
+    return ;
+}
 
 class VaapiDecoderJPEG::Impl
 {
@@ -441,6 +495,7 @@ YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
     return YAMI_DECODE_FORMAT_CHANGE;
 }
 
+#if (0)
 YamiStatus VaapiDecoderJPEG::finish()
 {
     if (!m_impl->frameHeader()) {
@@ -497,6 +552,153 @@ YamiStatus VaapiDecoderJPEG::finish()
 
     return YAMI_SUCCESS;
 }
+#endif
+
+#if (1) //ok
+YamiStatus VaapiDecoderJPEG::finish()
+{
+#define CHECK_VASTATUS(va_status,func)                                  \
+        if (va_status != VA_STATUS_SUCCESS) {                                   \
+            fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
+            exit(1);                                                            \
+        }
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+        //VABufferID pic_param_buf,iqmatrix_buf,huffmantable_buf,slice_param_buf,slice_data_buf;
+        VAStatus va_status;
+        //int max_h_factor, max_v_factor;
+    
+        //va_dpy = va_open_display();
+        va_dpy = getDisplayID();
+        config_id = getConfigureID();
+        surface_id = getSurfaceID();
+        context_id = getContextID();
+
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+    if (!m_impl->frameHeader()) {
+        ERROR("Start of Frame (SOF) not found");
+        return YAMI_FAIL;
+    }
+
+    if (!m_impl->scanHeader()) {
+        ERROR("Start of Scan (SOS) not found");
+        return YAMI_FAIL;
+    }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+    m_picture = createPicture(m_currentPTS);
+    if (!m_picture) {
+        ERROR("Could not create a VAAPI picture.");
+        return YAMI_FAIL;
+    }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+    m_picture->m_timeStamp = m_currentPTS;
+
+    YamiStatus status;
+
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+    status = fillSliceParam();
+    printf("dpwu  %s %s %d, status = %d ====\n", __FILE__, __FUNCTION__, __LINE__, status);
+    if (status !=  YAMI_SUCCESS) {
+        ERROR("Failed to load VAAPI slice parameters.");
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+        return status;
+    }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+    status = fillPictureParam();
+    if (status !=  YAMI_SUCCESS) {
+        ERROR("Failed to load VAAPI picture parameters");
+        return status;
+    }
+
+    status = loadQuantizationTables();
+    if (status !=  YAMI_SUCCESS) {
+        ERROR("Failed to load VAAPI quantization tables");
+        return status;
+    }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+    status = loadHuffmanTables();
+
+    if (status != YAMI_SUCCESS) {
+        ERROR("Failed to load VAAPI huffman tables");
+        return status;
+    }
+
+    {  
+       VABufferID bufferID = VA_INVALID_ID;
+       va_status = vaBeginPicture(va_dpy, context_id, surface_id);
+       CHECK_VASTATUS(va_status, "vaBeginPicture");   
+       
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+       bufferID = m_picture->m_picture->getID();
+       va_status = vaRenderPicture(va_dpy,context_id, /*&pic_param_buf*/&bufferID, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+   
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+       bufferID = m_picture->m_iqMatrix->getID();
+       va_status = vaRenderPicture(va_dpy,context_id, /*&iqmatrix_buf*/ &bufferID, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+       
+       bufferID = m_picture->m_hufTable->getID();
+       va_status = vaRenderPicture(va_dpy,context_id, /*&huffmantable_buf*/&bufferID, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+       std::pair <BufObjectPtr,BufObjectPtr> &slice = m_picture->m_slices[0];
+       bufferID = slice.first->getID();
+       va_status = vaRenderPicture(va_dpy,context_id, /*&slice_param_buf*/&bufferID, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+       bufferID = slice.second->getID();
+       va_status = vaRenderPicture(va_dpy, context_id, /*&slice_data_buf*/&bufferID, 1);
+       CHECK_VASTATUS(va_status, "vaRenderPicture");
+    
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+       va_status = vaEndPicture(va_dpy,context_id);
+       CHECK_VASTATUS(va_status, "vaEndPicture");
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+       va_status = vaSyncSurface(va_dpy, surface_id);
+       CHECK_VASTATUS(va_status, "vaSyncSurface");
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+
+       #if (0)
+       int putsurface=0;
+       if (putsurface) {
+           VARectangle src_rect, dst_rect;
+
+           src_rect.x      = 0;
+           src_rect.y      = 0;
+           src_rect.width  = 5120;
+           src_rect.height = 3840;
+           dst_rect        = src_rect;
+           va_status = va_put_surface(va_dpy, surface_id, &src_rect, &dst_rect);
+           CHECK_VASTATUS(va_status, "vaPutSurface");
+       }
+       #endif
+       printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+       surfaceToFile(va_dpy, surface_id);
+    
+       vaDestroySurfaces(va_dpy,&surface_id,1);
+       vaDestroyConfig(va_dpy,config_id);
+       vaDestroyContext(va_dpy,context_id);
+    }
+   // va_close_display(va_dpy);
+    vaTerminate(va_dpy);
+    printf("press any key to exit23\n");
+    getchar();
+    return YAMI_SUCCESS;
+}
+
+#endif
+
 
 YamiStatus VaapiDecoderJPEG::reset(VideoConfigBuffer* buffer)
 {

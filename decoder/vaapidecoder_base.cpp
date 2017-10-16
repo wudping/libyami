@@ -235,8 +235,8 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     attrib.value = VA_RT_FORMAT_YUV420;
 
 
-    ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD,&attrib, 1);
-    if (!config) {
+    m_config = VaapiConfig::create(m_display, profile, VAEntrypointVLD,&attrib, 1);
+    if (!m_config) {
         ERROR("failed to create config");
         return YAMI_FAIL;
     }
@@ -258,7 +258,7 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     if (surfaces.empty())
         return YAMI_FAIL;
     int size = surfaces.size();
-    m_context = VaapiContext::create(config,
+    m_context = VaapiContext::create(m_config,
                                        m_videoFormatInfo.width,
                                        m_videoFormatInfo.height,
                                        0, &surfaces[0], size);
@@ -332,6 +332,28 @@ VADisplay VaapiDecoderBase::getDisplayID()
     if (!m_display)
         return NULL;
     return m_display->getID();
+}
+
+VAContextID VaapiDecoderBase::getContextID()
+{
+    if (! m_context)
+        return -1;
+    return m_context->getID();
+
+}
+
+VAContextID VaapiDecoderBase::getConfigureID()
+{
+    if (! m_config)
+        return -1;
+    return m_config->getID();
+
+}
+
+VAContextID VaapiDecoderBase::getSurfaceID()
+{
+    SurfacePtr surfacePtr = m_surfacePool->acquireWithWait();
+    return surfacePtr->getID();
 }
 
 } //namespace YamiMediaCodec

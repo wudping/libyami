@@ -45,6 +45,13 @@ public:
     bool newSlice(T*& sliceParam, const void* sliceData, uint32_t sliceSize);
 
     bool decode();
+public:
+    BufObjectPtr m_picture;
+    BufObjectPtr m_iqMatrix;
+    BufObjectPtr m_bitPlane;
+    BufObjectPtr m_hufTable;
+    BufObjectPtr m_probTable;
+    std::vector<std::pair<BufObjectPtr, BufObjectPtr> > m_slices;
 
 protected:
     VaapiDecPicture();
@@ -52,12 +59,6 @@ protected:
 private:
     virtual bool doRender();
 
-    BufObjectPtr m_picture;
-    BufObjectPtr m_iqMatrix;
-    BufObjectPtr m_bitPlane;
-    BufObjectPtr m_hufTable;
-    BufObjectPtr m_probTable;
-    std::vector<std::pair<BufObjectPtr, BufObjectPtr> > m_slices;
 };
 
 template<class T>
