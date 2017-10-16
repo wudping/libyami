@@ -21,6 +21,8 @@
 #include "VaapiBuffer.h"
 #include "vaapiptrs.h"
 #include "VaapiSurface.h"
+#include "vaapicontext.h"
+#include "vaapidisplay.h"
 #include <string.h>
 #include <va/va.h>
 #include <vector>
@@ -41,7 +43,7 @@ typedef enum
 
 class VaapiPicture
 {
-protected:
+public:
     DisplayPtr             m_display;
     ContextPtr             m_context;
     SurfacePtr             m_surface;
@@ -51,6 +53,8 @@ public:
     virtual ~VaapiPicture() {};
 
     inline VASurfaceID getSurfaceID() const;
+    inline VAContextID getContextID() const;
+    inline VADisplay getDisplayID() const;
     inline SurfacePtr getSurface() const;
     inline void setSurface(const SurfacePtr&);
     bool sync();
@@ -127,6 +131,10 @@ VASurfaceID VaapiPicture::getSurfaceID() const
 {
     return m_surface->getID();
 }
+
+VAContextID VaapiPicture::getContextID() const { return m_context->getID();}
+
+VADisplay VaapiPicture::getDisplayID() const { return m_display->getID();}
 
 SurfacePtr VaapiPicture::getSurface() const
 {

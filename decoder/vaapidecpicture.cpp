@@ -17,6 +17,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "vaapi/vaapidisplay.h"
+#include "vaapi/vaapicontext.h"
 
 #include "vaapidecpicture.h"
 
@@ -38,6 +43,7 @@ bool VaapiDecPicture::decode()
     return render();
 }
 
+#if (0)
 bool VaapiDecPicture::doRender()
 {
     RENDER_OBJECT(m_picture);
@@ -48,4 +54,89 @@ bool VaapiDecPicture::doRender()
     RENDER_OBJECT(m_slices);
     return true;
 }
+#endif
+
+#if (1)
+bool VaapiDecPicture::doRender()
+{
+#if (0)
+    RENDER_OBJECT(m_picture);
+    RENDER_OBJECT(m_probTable);
+    RENDER_OBJECT(m_iqMatrix);
+    RENDER_OBJECT(m_bitPlane);
+    RENDER_OBJECT(m_hufTable);
+    RENDER_OBJECT(m_slices);
+#endif
+#if (0)
+    RENDER_OBJECT(m_picture);
+    RENDER_OBJECT(m_iqMatrix);
+    RENDER_OBJECT(m_hufTable);
+    RENDER_OBJECT(m_slices);
+    
+    //RENDER_OBJECT(m_probTable);
+    //RENDER_OBJECT(m_bitPlane);
+#endif
+#if (1)
+    {  
+#define CHECK_VASTATUS(va_status,func)                                  \
+        if (va_status != VA_STATUS_SUCCESS) {                                   \
+            fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
+            exit(1);                                                            \
+        }
+        VAStatus va_status;
+        VABufferID bufferID = VA_INVALID_ID;
+        //VAContextID va_dpy = m_display->getID();
+        //VADisplay context_id = m_context->getID();
+        
+#if (1)
+                bufferID = m_picture->getID();
+                va_status = vaRenderPicture(m_display->getID(), m_context->getID(), /*&pic_param_buf*/&bufferID, 1);
+                CHECK_VASTATUS(va_status, "vaRenderPicture");
+        
+                bufferID = m_iqMatrix->getID();
+                va_status = vaRenderPicture(m_display->getID(),m_context->getID(), /*&iqmatrix_buf*/ &bufferID, 1);
+                CHECK_VASTATUS(va_status, "vaRenderPicture");
+        
+                bufferID = m_hufTable->getID();
+                va_status = vaRenderPicture(m_display->getID(),m_context->getID(), /*&huffmantable_buf*/&bufferID, 1);
+                CHECK_VASTATUS(va_status, "vaRenderPicture");
+        
+                std::pair <BufObjectPtr,BufObjectPtr> &slice = m_slices[0];
+                bufferID = slice.first->getID();
+                va_status = vaRenderPicture(m_display->getID(),m_context->getID(), /*&slice_param_buf*/&bufferID, 1);
+                CHECK_VASTATUS(va_status, "vaRenderPicture");
+        
+                bufferID = slice.second->getID();
+                va_status = vaRenderPicture(m_display->getID(), m_context->getID(), /*&slice_data_buf*/&bufferID, 1);
+                CHECK_VASTATUS(va_status, "vaRenderPicture");
+#endif
+
+#if (0)
+        bufferID = m_picture->getID();
+        va_status = vaRenderPicture(va_dpy, context_id, /*&pic_param_buf*/&bufferID, 1);
+        CHECK_VASTATUS(va_status, "vaRenderPicture");
+
+        bufferID = m_iqMatrix->getID();
+        va_status = vaRenderPicture(va_dpy,context_id, /*&iqmatrix_buf*/ &bufferID, 1);
+        CHECK_VASTATUS(va_status, "vaRenderPicture");
+
+        bufferID = m_hufTable->getID();
+        va_status = vaRenderPicture(va_dpy,context_id, /*&huffmantable_buf*/&bufferID, 1);
+        CHECK_VASTATUS(va_status, "vaRenderPicture");
+
+        std::pair <BufObjectPtr,BufObjectPtr> &slice = m_slices[0];
+        bufferID = slice.first->getID();
+        va_status = vaRenderPicture(va_dpy,context_id, /*&slice_param_buf*/&bufferID, 1);
+        CHECK_VASTATUS(va_status, "vaRenderPicture");
+
+        bufferID = slice.second->getID();
+        va_status = vaRenderPicture(va_dpy, context_id, /*&slice_data_buf*/&bufferID, 1);
+        CHECK_VASTATUS(va_status, "vaRenderPicture");
+#endif
+    }
+#endif
+
+    return true;
+}
+#endif
 }
