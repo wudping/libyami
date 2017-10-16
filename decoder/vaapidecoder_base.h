@@ -65,6 +65,10 @@ class VaapiDecoderBase:public IVideoDecoder {
 
     //do not use this, we will remove this in near future
     virtual VADisplay getDisplayID();
+    virtual VAContextID getContextID();
+    virtual VAConfigID getConfigureID();
+    virtual VASurfaceID getSurfaceID();
+    virtual ContextPtr getContext(){return m_context;}
   protected:
       YamiStatus setupVA(uint32_t numSurface, VAProfile profile);
       YamiStatus terminateVA(void);
@@ -75,6 +79,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     NativeDisplay   m_externalDisplay;
     DisplayPtr m_display;
     ContextPtr m_context;
+    ConfigPtr m_config;
 
     VideoConfigBuffer m_configBuffer;
     VideoFormatInfo m_videoFormatInfo;

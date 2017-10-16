@@ -30,6 +30,7 @@ public:
     static ConfigPtr create(const DisplayPtr&, VAProfile, VAEntrypoint,
                     VAConfigAttrib *attribList, int numAttribs);
     ~VaapiConfig();
+    VAConfigID getID(){ return m_config; }
 private:
     VaapiConfig(const DisplayPtr&, VAConfigID);
     DisplayPtr m_display;

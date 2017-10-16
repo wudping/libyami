@@ -53,6 +53,7 @@ public:
     inline VASurfaceID getSurfaceID() const;
     inline SurfacePtr getSurface() const;
     inline void setSurface(const SurfacePtr&);
+    inline ContextPtr getContext(){ return m_context; }
     bool sync();
 
     int64_t                 m_timeStamp;

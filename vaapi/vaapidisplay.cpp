@@ -68,6 +68,7 @@ class NativeDisplayBase {
   protected:
     virtual bool acceptValidExternalHandle(const NativeDisplay& display) {
         if (display.handle && display.handle != -1) {
+            printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
             m_handle = display.handle;
             m_selfCreated = false;
             return true;
@@ -91,6 +92,7 @@ class NativeDisplayX11 : public NativeDisplayBase{
     };
 
     virtual bool initialize (const NativeDisplay& display) {
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         ASSERT(display.type == NATIVE_DISPLAY_X11 || display.type == NATIVE_DISPLAY_AUTO);
 
         if (acceptValidExternalHandle(display))
@@ -145,6 +147,8 @@ class NativeDisplayVADisplay : public NativeDisplayBase{
     ~NativeDisplayVADisplay() {};
     virtual bool initialize (const NativeDisplay& display) {
         ASSERT(display.type == NATIVE_DISPLAY_VA);
+        
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
         return acceptValidExternalHandle(display);
     };

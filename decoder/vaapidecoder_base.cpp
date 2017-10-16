@@ -214,6 +214,12 @@ const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
     return &m_videoFormatInfo;
 }
 
+#define CHECK_VASTATUS(va_status,func)                                  \
+        if (va_status != VA_STATUS_SUCCESS) {                                   \
+            fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
+            exit(1);                                                            \
+        }
+
 YamiStatus
 VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
 {
@@ -238,20 +244,55 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     VAConfigAttrib attrib;
     attrib.type = VAConfigAttribRTFormat;
     attrib.value = 0x0003001f;
+
+
+
+#if (1)
+    VAStatus va_status;
+    VAEntrypoint entrypoints[5];
+    int num_entrypoints;
+    int vld_entrypoint;
+
+    va_status = vaQueryConfigEntrypoints(m_display->getID(), VAProfileJPEGBaseline, entrypoints, 
+        &num_entrypoints);
+    CHECK_VASTATUS(va_status, "vaQueryConfigEntrypoints");
+    
+    for (vld_entrypoint = 0; vld_entrypoint < num_entrypoints; vld_entrypoint++) {
+       if (entrypoints[vld_entrypoint] == VAEntrypointVLD)
+           break;
+    }
+    if (vld_entrypoint == num_entrypoints) {
+       /* not find VLD entry point */
+       assert(0);
+    }
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+    
+    /* Assuming finding VLD, find out the format for the render target */
+    attrib.type = VAConfigAttribRTFormat;
+    vaGetConfigAttributes(m_display->getID(), VAProfileJPEGBaseline, VAEntrypointVLD,
+     &attrib, 1);
+    if ((attrib.value & VA_RT_FORMAT_YUV420) == 0) {
+       /* not find desired YUV420 RT format */
+       printf("dpwu  %s %s %d error attrib.value & VA_RT_FORMAT_YUV420 ====\n", __FILE__, __FUNCTION__, __LINE__);
+       assert(0);
+    }
+
+#endif
     
     printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
-    ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD,&attrib, 1);
-    if (!config) {
+    m_config = VaapiConfig::create(m_display, profile, VAEntrypointVLD, &attrib, 1);
+    if (!m_config) {
         ERROR("failed to create config");
         return YAMI_FAIL;
     }
-    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     if (!m_externalAllocator) {
         //use internal allocator
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID()), unrefAllocator);
     } else {
+        printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         m_allocator = m_externalAllocator;
     }
     printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
@@ -267,7 +308,7 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
         return YAMI_FAIL;
     int size = surfaces.size();
     printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
-    m_context = VaapiContext::create(config,
+    m_context = VaapiContext::create(m_config,
                                        m_videoFormatInfo.width,
                                        m_videoFormatInfo.height,
                                        1, &surfaces[0], size);
@@ -369,5 +410,28 @@ VADisplay VaapiDecoderBase::getDisplayID()
         return NULL;
     return m_display->getID();
 }
+
+VAContextID VaapiDecoderBase::getContextID()
+{
+    if (! m_context)
+        return -1;
+    return m_context->getID();
+
+}
+
+VAContextID VaapiDecoderBase::getConfigureID()
+{
+    if (! m_config)
+        return -1;
+    return m_config->getID();
+
+}
+
+VAContextID VaapiDecoderBase::getSurfaceID()
+{
+    SurfacePtr surfacePtr = m_surfacePool->acquireWithWait();
+    return surfacePtr->getID();
+}
+
 
 } //namespace YamiMediaCodec
