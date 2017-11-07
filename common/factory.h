@@ -20,6 +20,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <stdio.h>
 
 template < class T >
 class Factory {
@@ -41,8 +42,9 @@ public:
     template < class C >
     static bool register_(const KeyType& key)
     {
+        Creators& creators = getCreators();
         std::pair<iterator, bool> result =
-            getCreators().insert(std::make_pair(key, create<C>));
+            creators.insert(std::make_pair(key, create<C>));
         return result.second;
     }
 
@@ -57,6 +59,7 @@ public:
         const const_iterator creator(creators.find(key));
         if (creator != creators.end())
             return creator->second();
+        //printf("dpwu  %s %s %d, key.c_str() = %s, creators.size() = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, key.c_str(), creators.size());
         return NULL;
     }
 

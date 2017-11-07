@@ -28,6 +28,7 @@ namespace YamiMediaCodec {
 
 #define H264_MAX_REFRENCE_SURFACE_NUMBER 16
 
+
 class VaapiDecPictureH264;
 class VaapiDecoderH264 : public VaapiDecoderBase {
 public:

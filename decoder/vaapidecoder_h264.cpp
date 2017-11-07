@@ -1850,3 +1850,8 @@ const bool VaapiDecoderH264::s_registered
     = VaapiDecoderFactory::register_<VaapiDecoderH264>(YAMI_MIME_AVC)
       && VaapiDecoderFactory::register_<VaapiDecoderH264>(YAMI_MIME_H264);
 }
+
+int show_h264()
+{
+    return 0;
+}
