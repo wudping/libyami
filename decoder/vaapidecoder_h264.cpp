@@ -337,6 +337,8 @@ VaapiDecoderH264::DPB::DPB(OutputCallback output)
     , m_maxFrameNum(0)
     , m_maxNumRefFrames(0)
     , m_maxDecFrameBuffering(H264_MAX_REFRENCE_SURFACE_NUMBER)
+    , m_isOutputStarted(false)
+    , m_lastOutputPoc(0)
 {
 }
 
@@ -1020,6 +1022,7 @@ bool VaapiDecoderH264::DPB::output(const PicturePtr& picture)
     picture->m_picOutputFlag = false;
 
     DEBUG("DPB: output picture(Poc:%d)", picture->m_poc);
+    m_lastOutputPoc = 	picture->m_poc;
     return m_output(picture) == YAMI_SUCCESS;
 }
 
@@ -1103,7 +1106,26 @@ bool VaapiDecoderH264::DPB::add(const PicturePtr& picture)
         compPicture->m_picStructure = VAAPI_PICTURE_FRAME;
     }
 
+    if (m_isLowLatencymode)
+        return outputReadyFrames();
+
     return true;
+}
+
+bool VaapiDecoderH264::DPB::outputReadyFrames()
+{
+    PictureList::iterator it;
+    while(true) {
+        it = find_if(m_pictures.begin(), m_pictures.end(), isOutputNeeded);
+        if (it == m_pictures.end())
+            return true;
+        if (isFrame(*it) && (!m_isOutputStarted || ((*it)->m_poc -m_lastOutputPoc == 1))) {
+            output(*it);
+            m_isOutputStarted = true;
+        } else {
+            return true;
+        }
+    }
 }
 
 void VaapiDecoderH264::DPB::flush()
@@ -1112,6 +1134,8 @@ void VaapiDecoderH264::DPB::flush()
     clearRefSet();
     m_pictures.clear();
     m_prevPicture.reset();
+    m_isOutputStarted = false;
+    m_lastOutputPoc = 0;
 }
 
 VaapiDecoderH264::VaapiDecoderH264()
@@ -1194,7 +1218,8 @@ YamiStatus VaapiDecoderH264::start(VideoConfigBuffer* buffer)
         }
     }
 
-
+    m_dpb.m_isLowLatencymode = true;
+    //printf("dpwu  %s %s %d, m_dpb.m_isLowLatencymode = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, m_dpb.m_isLowLatencymode);
     return YAMI_SUCCESS;
 }
 
