@@ -18,6 +18,8 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
+
 #include <algorithm>
 #include "nalreader.h"
 
@@ -43,11 +45,14 @@ bool NalReader::read(const uint8_t*& nal, int32_t& nalSize)
 
     nal = m_next;
     const uint8_t* nalEnd;
-    if (m_asWhole) {
+    if (1) {
         nalEnd = m_end;
+        m_next = m_end;
     } else {
         nalEnd = searchNalStart();
     }
+    
+    //printf("dpwu  %s %s %d, nalEnd = 0x%p, m_end = 0x%p ====\n", __FILE__, __FUNCTION__, __LINE__, nalEnd, m_end);
     nalSize = nalEnd - nal;
     return true;
 }
