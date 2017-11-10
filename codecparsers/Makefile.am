@@ -1,8 +1,6 @@
 libyami_codecparser_source_c = \
 	bitReader.cpp \
-	bitWriter.cpp \
 	nalReader.cpp \
-	dboolhuff.c \
 	$(NULL)
 
 if BUILD_JPEG_PARSER
@@ -51,7 +49,6 @@ endif
 
 libyami_codecparser_source_h_priv = \
 	bitReader.h \
-	bitWriter.h \
 	nalReader.h \
 	$(NULL)
 
@@ -81,7 +78,6 @@ libyami_codecparser_source_h_priv += \
 endif
 
 libyami_codecparser_source_h_priv += \
-	dboolhuff.h \
 	$(NULL)
 EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
 

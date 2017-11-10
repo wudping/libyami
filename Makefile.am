@@ -6,12 +6,10 @@ DISTCLEANFILES = \
 	configure config.h.in config.h.in~ depcomp install-sh ltmain.sh \
 	Makefile.in missing
 
-SUBDIRS = common codecparsers vaapi decoder encoder vpp pkgconfig
+SUBDIRS = common codecparsers vaapi decoder pkgconfig
 if ENABLE_DOCS
 SUBDIRS += doc
 endif
-
-SUBDIRS += capi
 
 if ENABLE_V4L2
 SUBDIRS +=  v4l2
@@ -43,11 +41,8 @@ libyami_la_LIBADD = common/libyami_common.la \
 	codecparsers/libyami_codecparser.la \
 	vaapi/libyami_vaapi.la \
 	decoder/libyami_decoder.la \
-	encoder/libyami_encoder.la \
-	vpp/libyami_vpp.la \
 	$(NULL)
 
-libyami_la_LIBADD += capi/libyami_capi.la
 
 if ENABLE_X11
 libyami_la_LDFLAGS += $(LIBVA_X11_LIBS) $(X11_LIBS)
