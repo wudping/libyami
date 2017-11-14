@@ -1545,6 +1545,7 @@ YamiStatus VaapiDecoderH264::decodeCurrent()
     m_prevPic = m_currPic;
     m_currPic.reset();
     m_newStream = false;
+
     return status;
 }
 
@@ -1626,7 +1627,7 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
         maxDecFrameBuffering = H264_MAX_REFRENCE_SURFACE_NUMBER;
     else if (maxDecFrameBuffering < sps->num_ref_frames)
         maxDecFrameBuffering = sps->num_ref_frames;
-    maxDecFrameBuffering = 1;
+    maxDecFrameBuffering = 0;
 
     if (m_configBuffer.surfaceWidth < sps->m_width
         || m_configBuffer.surfaceHeight < sps->m_height
@@ -1814,6 +1815,7 @@ YamiStatus VaapiDecoderH264::decodeNalu(NalUnit* nalu)
 
     if (NAL_SLICE_NONIDR <= type && type <= NAL_SLICE_IDR) {
         status = decodeSlice(nalu);
+        //printf("dpwu  %s %s %d, status = %d ====\n", __FILE__, __FUNCTION__, __LINE__, status);
         if (status == YAMI_DECODE_INVALID_DATA) {
             // ignore invalid data while decoding slice to continue to decode
             // the next slice
@@ -1822,6 +1824,7 @@ YamiStatus VaapiDecoderH264::decodeNalu(NalUnit* nalu)
         }
     } else {
         status = decodeCurrent();
+        //printf("dpwu  %s %s %d, status = %d ====\n", __FILE__, __FUNCTION__, __LINE__, status);
         if (status != YAMI_SUCCESS)
             return status;
         switch (type) {
@@ -1861,6 +1864,7 @@ YamiStatus VaapiDecoderH264::decode(VideoDecodeBuffer* buffer)
     NalUnit nalu;
     YamiStatus status = YAMI_SUCCESS;
     const uint8_t* nal;
+    //printf("dpwu  %s %s %d, buffer->size = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, buffer->size);
     NalReader nr(buffer->data, buffer->size, m_nalLengthSize);
 
     while (nr.read(nal, size)) {
