@@ -1627,7 +1627,8 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
         maxDecFrameBuffering = H264_MAX_REFRENCE_SURFACE_NUMBER;
     else if (maxDecFrameBuffering < sps->num_ref_frames)
         maxDecFrameBuffering = sps->num_ref_frames;
-    maxDecFrameBuffering = 0;
+    //maxDecFrameBuffering = 0;
+    
 
     if (m_configBuffer.surfaceWidth < sps->m_width
         || m_configBuffer.surfaceHeight < sps->m_height
@@ -1636,6 +1637,7 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
         m_contextChanged = true;
     } else
         m_contextChanged = false;
+    //printf("dpwu  %s %s %d, m_configBuffer.surfaceNumber = %d ====\n", __FILE__, __FUNCTION__, __LINE__, m_configBuffer.surfaceNumber);
 
     return m_contextChanged;
 }

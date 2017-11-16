@@ -313,7 +313,9 @@ SurfacePtr VaapiDecoderBase::createSurface()
 {
     SurfacePtr surface;
     if (m_surfacePool) {
+        //printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
         surface = m_surfacePool->acquireWithWait();
+        //printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     }
     return surface;
 }

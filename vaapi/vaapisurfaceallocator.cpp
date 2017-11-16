@@ -47,6 +47,8 @@ YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
     }
 
     size += m_extraSize;
+    
+    //printf("dpwu  %s %s %d, size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, size);
 
     std::vector<VASurfaceID> v(size);
     VASurfaceAttrib attrib;
