@@ -25,7 +25,7 @@ namespace YamiMediaCodec{
 class VaapiSurfaceAllocator : public BaseSurfaceAllocator
 {
     //extra buffer size for performance
-    static const uint32_t EXTRA_BUFFER_SIZE = 3;
+    static const uint32_t EXTRA_BUFFER_SIZE = 2;
 public:
     //we do not use DisplayPtr here since we may give this to user someday.
     //@extraSize[in] extra size add to SurfaceAllocParams.size
