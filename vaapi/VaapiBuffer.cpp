@@ -23,6 +23,14 @@
 #include "VaapiUtils.h"
 #include "vaapicontext.h"
 #include "vaapidisplay.h"
+#include <sys/time.h>
+#define TIME_DURATION(end1, start1) ((end1.tv_sec * 1000 + end1.tv_usec / 1000) - (start1.tv_sec * 1000 + start1.tv_usec / 1000))
+
+#define TIME_MS(time_dd) (time_dd.tv_sec * 1000 + time_dd.tv_usec / 1000)
+
+#if (1)
+static struct timeval before_buffer_t, buffer_t;
+#endif
 
 namespace YamiMediaCodec {
 
@@ -39,10 +47,15 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     }
     DisplayPtr display = context->getDisplay();
     VABufferID id;
+    
+    gettimeofday(&before_buffer_t, NULL);
     VAStatus status = vaCreateBuffer(display->getID(), context->getID(),
         type, size, 1, (void*)data, &id);
     if (!checkVaapiStatus(status, "vaCreateBuffer"))
         return buf;
+    gettimeofday(&buffer_t, NULL);
+    printf("dpwu  %s %s %d, buffer type = %d, createbuffer = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, type, TIME_DURATION(buffer_t, before_buffer_t));
+            
     buf.reset(new VaapiBuffer(display, id, size));
     if (mapped) {
         *mapped = buf->map();

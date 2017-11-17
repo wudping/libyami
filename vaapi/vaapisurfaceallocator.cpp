@@ -22,6 +22,12 @@
 #include "vaapi/vaapisurfaceallocator.h"
 #include "vaapi/VaapiUtils.h"
 #include <vector>
+#include <sys/time.h>
+
+#define TIME_DURATION(end1, start1) ((end1.tv_sec * 1000 + end1.tv_usec / 1000) - (start1.tv_sec * 1000 + start1.tv_usec / 1000))
+#define TIME_MS(time_x) (time_x.tv_sec * 1000 + time_x.tv_usec / 1000)
+
+struct timeval before_create_surface, create_surface;
 
 namespace YamiMediaCodec{
 
@@ -56,6 +62,8 @@ YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
     attrib.type = VASurfaceAttribPixelFormat;
     attrib.value.type = VAGenericValueTypeInteger;
     attrib.value.value.i = params->fourcc;
+    
+    gettimeofday(&before_create_surface, NULL);
     VAStatus status = vaCreateSurfaces(m_display,
         rtFormat, width, height,
         &v[0], size, &attrib, 1);
@@ -65,6 +73,9 @@ YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
     for (uint32_t i = 0; i < size; i++) {
         params->surfaces[i] = (intptr_t)v[i];
     }
+    gettimeofday(&create_surface, NULL);
+    printf("dpwu  %s %s %d, before = %ld, surface = %ld, create_surface = %ld, size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_MS(before_create_surface), TIME_MS(create_surface), TIME_DURATION(create_surface, before_create_surface), size);
+
     params->size = size;
     return YAMI_SUCCESS;
 }

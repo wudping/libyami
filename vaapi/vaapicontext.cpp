@@ -27,6 +27,16 @@
 #include <algorithm>
 #include <vector>
 
+
+#include <sys/time.h>
+
+#define TIME_DURATION(end1, start1) ((end1.tv_sec * 1000 + end1.tv_usec / 1000) - (start1.tv_sec * 1000 + start1.tv_usec / 1000))
+#define TIME_MS(time_x) (time_x.tv_sec * 1000 + time_x.tv_usec / 1000)
+
+#if (1)
+static struct timeval befor_context_t, context_t, before_config_t, config_t;
+#endif
+
 namespace YamiMediaCodec{
 using std::vector;
 static const VAProfile h264ProfileList[] = {VAProfileH264ConstrainedBaseline, VAProfileH264Main, VAProfileH264High};
@@ -94,7 +104,11 @@ ConfigPtr VaapiConfig::create(const DisplayPtr& display,
         return ret;
     }
 
+    gettimeofday(&before_config_t, NULL);
     vaStatus = vaCreateConfig(display->getID(), profile, entry, attribList, numAttribs, &config);
+    gettimeofday(&config_t, NULL);
+    printf("dpwu  %s %s %d, config_duration = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_DURATION(before_config_t, config_t));
+    
 
     if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
         return ret;
@@ -124,9 +138,14 @@ ContextPtr VaapiContext::create(const ConfigPtr& config,
     }
     VAStatus vaStatus;
     VAContextID context;
+    
+    gettimeofday(&befor_context_t, NULL);
     vaStatus = vaCreateContext(config->m_display->getID(), config->m_config,
                                width, height, flag,
                                render_targets, num_render_targets, &context);
+    gettimeofday(&context_t, NULL);
+    printf("dpwu  %s %s %d, context_duration = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_DURATION(context_t, befor_context_t));
+    
     if (!checkVaapiStatus(vaStatus, "vaCreateContext "))
         return ret;
     ret.reset(new VaapiContext(config, context));

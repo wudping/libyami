@@ -26,6 +26,14 @@
 #include "vaapicontext.h"
 #include "VaapiSurface.h"
 #include "VaapiUtils.h"
+#include <sys/time.h>
+
+#define TIME_DURATION(end1, start1) ((end1.tv_sec * 1000 + end1.tv_usec / 1000) - (start1.tv_sec * 1000 + start1.tv_usec / 1000))
+#define TIME_MS(time_dd) (time_dd.tv_sec * 1000 + time_dd.tv_usec / 1000)
+
+#if (1)
+static struct timeval time_1, time_2, time_3, time_4;
+#endif
 
 namespace YamiMediaCodec{
 VaapiPicture::VaapiPicture(const ContextPtr& context,
@@ -51,15 +59,27 @@ bool VaapiPicture::render()
     }
 
     VAStatus status;
+    gettimeofday(&time_1, NULL);
     status = vaBeginPicture(m_display->getID(), m_context->getID(), m_surface->getID());
     if (!checkVaapiStatus(status, "vaBeginPicture()"))
         return false;
 
+    gettimeofday(&time_2, NULL);
+
     bool ret = doRender();
+
+    gettimeofday(&time_3, NULL);
 
     status = vaEndPicture(m_display->getID(), m_context->getID());
     if (!checkVaapiStatus(status, "vaEndPicture()"))
         return false;
+    
+    gettimeofday(&time_4, NULL);
+    
+    printf("dpwu  %s %s %d, duration1 = %ld, duration2 = %ld, duration3 vaEndPicture = %ld ====\n", __FILE__, __FUNCTION__, __LINE__
+        , TIME_DURATION(time_2, time_1), TIME_DURATION(time_3, time_2), TIME_DURATION(time_4, time_3));
+
+    
     return ret;
 }
 
