@@ -74,7 +74,7 @@ YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
         params->surfaces[i] = (intptr_t)v[i];
     }
     gettimeofday(&create_surface, NULL);
-    //printf("dpwu  %s %s %d, before = %ld, surface = %ld, create_surface = %ld, size = %d ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_MS(before_create_surface), TIME_MS(create_surface), TIME_DURATION(create_surface, before_create_surface), size);
+    //fprintf(stderr, "%s %s %d, before = %ld, surface = %ld, time_cost = %ld, num = %d ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_MS(before_create_surface), TIME_MS(create_surface), TIME_DURATION(create_surface, before_create_surface), size);
 
     params->size = size;
     return YAMI_SUCCESS;

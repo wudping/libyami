@@ -1628,7 +1628,7 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
     else if (maxDecFrameBuffering < sps->num_ref_frames)
         maxDecFrameBuffering = sps->num_ref_frames;
     //maxDecFrameBuffering = 0;
-    maxDecFrameBuffering = 0;
+    maxDecFrameBuffering = 5;
     
 
     if (m_configBuffer.surfaceWidth < sps->m_width
