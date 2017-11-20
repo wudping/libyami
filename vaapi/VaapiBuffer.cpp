@@ -54,7 +54,7 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     if (!checkVaapiStatus(status, "vaCreateBuffer"))
         return buf;
     gettimeofday(&buffer_t, NULL);
-    printf("dpwu  %s %s %d, buffer type = %d, createbuffer = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, type, TIME_DURATION(buffer_t, before_buffer_t));
+    //printf("dpwu  %s %s %d, buffer type = %d, createbuffer = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, type, TIME_DURATION(buffer_t, before_buffer_t));
             
     buf.reset(new VaapiBuffer(display, id, size));
     if (mapped) {

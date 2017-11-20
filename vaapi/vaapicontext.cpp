@@ -107,7 +107,7 @@ ConfigPtr VaapiConfig::create(const DisplayPtr& display,
     gettimeofday(&before_config_t, NULL);
     vaStatus = vaCreateConfig(display->getID(), profile, entry, attribList, numAttribs, &config);
     gettimeofday(&config_t, NULL);
-    printf("dpwu  %s %s %d, config_duration = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_DURATION(before_config_t, config_t));
+    //printf("dpwu  %s %s %d, config_duration = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_DURATION(before_config_t, config_t));
     
 
     if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
@@ -144,7 +144,7 @@ ContextPtr VaapiContext::create(const ConfigPtr& config,
                                width, height, flag,
                                render_targets, num_render_targets, &context);
     gettimeofday(&context_t, NULL);
-    printf("dpwu  %s %s %d, context_duration = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_DURATION(context_t, befor_context_t));
+    //printf("dpwu  %s %s %d, context_duration = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, TIME_DURATION(context_t, befor_context_t));
     
     if (!checkVaapiStatus(vaStatus, "vaCreateContext "))
         return ret;

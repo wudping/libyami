@@ -75,10 +75,10 @@ bool VaapiPicture::render()
         return false;
     
     gettimeofday(&time_4, NULL);
-    
+    /*
     printf("dpwu  %s %s %d, duration1 = %ld, duration2 = %ld, duration3 vaEndPicture = %ld ====\n", __FILE__, __FUNCTION__, __LINE__
         , TIME_DURATION(time_2, time_1), TIME_DURATION(time_3, time_2), TIME_DURATION(time_4, time_3));
-
+*/
     
     return ret;
 }
