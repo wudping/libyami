@@ -1,12 +1,17 @@
 libyami_common_source_c = \
 	log.cpp \
 	utils.cpp \
-	nalreader.cpp \
 	surfacepool.cpp \
 	PooledFrameAllocator.cpp \
 	YamiVersion.cpp \
 	Thread.cpp \
 	$(NULL)
+
+
+if BUILD_DECODER
+libyami_common_source_c += nalreader.cpp \
+	$(NULL)
+endif
 
 libyami_common_source_h = \
 	../interface/YamiVersion.h \
@@ -19,11 +24,15 @@ libyami_common_source_h_priv = \
 	log.h \
 	utils.h \
 	common_def.h \
-	nalreader.h \
 	videopool.h \
 	surfacepool.h \
 	Thread.h \
 	$(NULL)
+
+if BUILD_DECODER
+libyami_common_source_h_priv += nalreader.h \
+	$(NULL)
+endif
 
 libyami_common_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
