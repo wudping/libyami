@@ -7,9 +7,9 @@ DISTCLEANFILES = \
 	Makefile.in missing
 
 if ENABLE_TESTS
-SUBDIRS = gtestsrc common codecparsers vaapi vpp pkgconfig
+SUBDIRS = gtestsrc common codecparsers vaapi pkgconfig
 else
-SUBDIRS = common codecparsers vaapi vpp pkgconfig
+SUBDIRS = common codecparsers vaapi pkgconfig
 endif
 
 if BUILD_DECODER
@@ -18,6 +18,10 @@ endif
 
 if BUILD_ENCODER
 SUBDIRS += encoder
+endif
+
+if BUILD_VPP
+SUBDIRS += vpp
 endif
 
 if ENABLE_DOCS
@@ -57,7 +61,6 @@ libyami_la_CPPFLAGS = \
 libyami_la_LIBADD = common/libyami_common.la \
 	codecparsers/libyami_codecparser.la \
 	vaapi/libyami_vaapi.la \
-	vpp/libyami_vpp.la \
 	$(NULL)
 
 if BUILD_ENCODER
@@ -66,6 +69,10 @@ endif
 
 if BUILD_DECODER
 libyami_la_LIBADD += decoder/libyami_decoder.la
+endif
+
+if BUILD_VPP
+libyami_la_LIBADD += vpp/libyami_vpp.la
 endif
 
 if BUILD_CAPI
