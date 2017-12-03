@@ -24,7 +24,9 @@ if ENABLE_DOCS
 SUBDIRS += doc
 endif
 
+if BUILD_CAPI
 SUBDIRS += capi
+endif
 
 if ENABLE_V4L2
 SUBDIRS +=  v4l2
@@ -66,7 +68,9 @@ if BUILD_DECODER
 libyami_la_LIBADD += decoder/libyami_decoder.la
 endif
 
+if BUILD_CAPI
 libyami_la_LIBADD += capi/libyami_capi.la
+endif
 
 if ENABLE_X11
 libyami_la_LDFLAGS += $(LIBVA_X11_LIBS) $(X11_LIBS)

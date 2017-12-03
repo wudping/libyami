@@ -1,12 +1,32 @@
 libyami_capi_source_c = \
-	VideoDecoderCapi.cpp \
-	VideoEncoderCapi.cpp \
 	$(NULL)
 
+if BUILD_ENCODER
+libyami_capi_source_c += \
+	VideoEncoderCapi.cpp \
+        $(NULL)
+endif
+
+if BUILD_DECODER
+libyami_capi_source_c += \
+	VideoDecoderCapi.cpp \
+        $(NULL)
+endif
+
 libyami_capi_source_h = \
-	../interface/VideoDecoderCapi.h \
+	$(NULL)
+
+if BUILD_ENCODER
+libyami_capi_source_h += \
 	../interface/VideoEncoderCapi.h \
 	$(NULL)
+endif
+
+if BUILD_DECODER
+libyami_capi_source_h += \
+	../interface/VideoDecoderCapi.h \
+        $(NULL)
+endif
 
 libyami_capi_source_h_priv = \
 	$(NULL)

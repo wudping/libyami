@@ -372,6 +372,16 @@ fi
 AM_CONDITIONAL(BUILD_ENCODER,
     [test "x$ENABLE_ENCODER" = "xyes"])
 
+
+dnl capi
+AC_ARG_ENABLE(capi,
+    [AC_HELP_STRING([--enable-capi],
+        [build with capi support @<:@default=yes@:>@])],
+    [], [enable_capi="yes"])
+
+AM_CONDITIONAL(BUILD_CAPI,
+    [test "x$enable_capi" = "xyes"])
+
 dnl encoder getmv
 AC_ARG_ENABLE(getmv,
     [AC_HELP_STRING([--enable-getmv],
