@@ -276,6 +276,18 @@ fi
 AM_CONDITIONAL(BUILD_DECODER,
     [test "x$ENABLE_DECODER" = "xyes"])
 
+if test "$ENABLE_DECODER" = "yes"; then
+    AC_DEFINE([__BUILD_DECODER__], [1],
+        [Defined to 1 if any of those decoders is enabled])
+fi
+
+if test "$ENABLE_DECODER" = "yes"; then
+    __BUILD_DECODER__=1
+else
+    __BUILD_DECODER__=0
+fi
+AC_SUBST(__BUILD_DECODER__)
+
 dnl h264 encoder
 AC_ARG_ENABLE(h264enc,
     [AC_HELP_STRING([--enable-h264enc],
@@ -372,6 +384,17 @@ fi
 AM_CONDITIONAL(BUILD_ENCODER,
     [test "x$ENABLE_ENCODER" = "xyes"])
 
+if test "$ENABLE_ENCODER" = "yes"; then
+    AC_DEFINE([__BUILD_ENCODER__], [1],
+        [Defined to 1 if any of those encoders is enabled])
+fi
+
+if test "$ENABLE_ENCODER" = "yes"; then
+    __BUILD_ENCODER__=1
+else
+    __BUILD_ENCODER__=0
+fi
+AC_SUBST(__BUILD_ENCODER__)
 
 dnl capi
 AC_ARG_ENABLE(capi,
@@ -417,6 +440,13 @@ AC_ARG_ENABLE(vpp,
 
 AM_CONDITIONAL(BUILD_VPP,
     [test "x$enable_vpp" = "xyes" -o "x$enable_oclfilters" = "xyes"])
+
+if test "$enable_vpp" = "yes"; then
+    __BUILD_VPP__=1
+else
+    __BUILD_VPP__=0
+fi
+AC_SUBST(__BUILD_VPP__)
 
 # dnl Doxygen
 AC_ARG_ENABLE(docs,

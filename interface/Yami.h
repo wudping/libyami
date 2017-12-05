@@ -18,11 +18,18 @@
 #define YAMI_H_
 
 #include <YamiVersion.h>
+#include <VideoCommonDefs.h>
 
+#if (__BUILD_DECODER__)
 #include <VideoDecoderHost.h>
+#endif
 
+#if (__BUILD_ENCODER__)
 #include <VideoEncoderHost.h>
+#endif
 
+#if (__BUILD_VPP__)
 #include <VideoPostProcessHost.h>
+#endif
 
 #endif

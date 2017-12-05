@@ -22,6 +22,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * __BUILD_DECODER__: represent wheter decoder subdirectory is compiled or not.
+ * __BUILD_ENCODER__: represent wheter encoder subdirectory is compiled or not.
+ * __BUILD_VPP__: represent wheter vpp subdirectory is compiled or not.
+ *
+ */
+#define __BUILD_DECODER__    @__BUILD_DECODER__@
+#define __BUILD_ENCODER__    @__BUILD_ENCODER__@
+#define __BUILD_VPP__    @__BUILD_VPP__@
 
 /**
  * YAMI_API_MAJOR_VERSION
