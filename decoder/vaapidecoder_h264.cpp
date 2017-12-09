@@ -26,6 +26,7 @@
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
+#include "vaapi/vaapisurfaceallocator.h"
 #include "vaapidecpicture.h"
 
 #include <algorithm>
@@ -1211,6 +1212,8 @@ bool VaapiDecoderH264::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
 
 YamiStatus VaapiDecoderH264::start(VideoConfigBuffer* buffer)
 {
+    m_configBuffer = *buffer;
+
     if (buffer->data && buffer->size > 0) {
         if (!decodeAvcRecordData(buffer->data, buffer->size)) {
             ERROR("decode record data failed");
@@ -1219,6 +1222,10 @@ YamiStatus VaapiDecoderH264::start(VideoConfigBuffer* buffer)
     }
 
     m_dpb.m_isLowLatencymode = buffer->enableLowLatency;
+    m_noNeedExtraSurface = buffer->noNeedExtraSurface;
+    if (m_noNeedExtraSurface)
+        m_configBuffer.surfaceNumber -= VaapiSurfaceAllocator::MINIMUM_EXTRA_BUFFER_SIZE;
+
     return YAMI_SUCCESS;
 }
 
@@ -1613,6 +1620,7 @@ uint32_t calcMaxDecFrameBufferingNum(const SharedPtr<SPS>& sps)
 bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
 {
     uint32_t maxDecFrameBuffering;
+    uint32_t surfaceNumber;
 
     maxDecFrameBuffering = calcMaxDecFrameBufferingNum(sps);
 
@@ -1625,7 +1633,11 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
                                               : sps->m_width;
     uint32_t height = sps->frame_cropping_flag ? sps->m_cropRectHeight
                                                : sps->m_height;
-    if (setFormat(width, height, sps->m_width, sps->m_height, maxDecFrameBuffering + 1)) {
+    if (m_configBuffer.flag & HAS_SURFACE_NUMBER && m_configBuffer.surfaceNumber > 0)
+        surfaceNumber = m_configBuffer.surfaceNumber;
+    else
+        surfaceNumber = maxDecFrameBuffering + 1;
+    if (setFormat(width, height, sps->m_width, sps->m_height, surfaceNumber)) {
         if (isSurfaceGeometryChanged()) {
             decodeCurrent();
             m_dpb.flush();

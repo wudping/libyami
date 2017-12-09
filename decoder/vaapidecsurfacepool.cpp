@@ -93,6 +93,7 @@ bool VaapiDecSurfacePool::init(VideoDecoderConfig* config,
     m_allocParams.height = config->height;
     m_allocParams.fourcc = config->fourcc;
     m_allocParams.size = config->surfaceNumber;
+
     if (m_allocator->alloc(m_allocator.get(), &m_allocParams) != YAMI_SUCCESS) {
         ERROR("allocate surface failed (%dx%d), size = %d",
             m_allocParams.width, m_allocParams.height , m_allocParams.size);

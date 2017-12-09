@@ -26,8 +26,8 @@
 namespace YamiMediaCodec{
 
 VaapiSurfaceAllocator::VaapiSurfaceAllocator(VADisplay display, uint32_t extraSize)
-    :m_display(display),
-    m_extraSize(extraSize)
+    : m_display(display)
+    , m_extraSize(extraSize)
 {
 }
 

@@ -113,6 +113,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     DecSurfacePoolPtr m_surfacePool;
     SharedPtr<SurfaceAllocator> m_allocator;
     SharedPtr<SurfaceAllocator> m_externalAllocator;
+    bool m_noNeedExtraSurface;
 
     /* output queue*/
     typedef std::deque<SharedPtr<VideoFrame> > OutputQueue;

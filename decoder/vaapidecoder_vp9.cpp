@@ -21,6 +21,7 @@
 
 #include <string.h>
 
+#include "vaapi/vaapisurfaceallocator.h"
 #include "common/log.h"
 #include "vaapidecoder_vp9.h"
 
@@ -62,18 +63,25 @@ YamiStatus VaapiDecoderVP9::start(VideoConfigBuffer* buffer)
 {
     DEBUG("VP9: start() buffer size: %d x %d", buffer->width,
           buffer->height);
+
     if (!(buffer->flag & HAS_VA_PROFILE))
         buffer->profile = VAProfileVP9Profile0;
     //VP9_SURFACE_NUM reference frame
-    if (!(buffer->flag & HAS_SURFACE_NUMBER))
+    if (!(buffer->flag & HAS_SURFACE_NUMBER) || buffer->surfaceNumber < 1)
         buffer->surfaceNumber = VP9_SURFACE_NUM;
-
-    m_parser->bit_depth = VP9_BITS_8;
 
     DEBUG("disable native graphics buffer");
     m_configBuffer = *buffer;
     m_configBuffer.data = NULL;
     m_configBuffer.size = 0;
+
+    m_parser->bit_depth = VP9_BITS_8;
+
+    m_noNeedExtraSurface = buffer->noNeedExtraSurface;
+    if (m_noNeedExtraSurface)
+        m_configBuffer.surfaceNumber -= VaapiSurfaceAllocator::MINIMUM_EXTRA_BUFFER_SIZE;
+    if (m_configBuffer.surfaceNumber < 1)
+        m_configBuffer.surfaceNumber = 1;
 
     return YAMI_SUCCESS;
 }
@@ -115,7 +123,7 @@ YamiStatus VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
 
     uint32_t fourcc = (m_parser->bit_depth == VP9_BITS_10) ? YAMI_FOURCC_P010 : YAMI_FOURCC_NV12;
 
-    if (setFormat(hdr->width, hdr->height, ALIGN8(hdr->width), ALIGN32(hdr->height), VP9_SURFACE_NUM, fourcc)) {
+    if (setFormat(hdr->width, hdr->height, ALIGN8(hdr->width), ALIGN32(hdr->height), m_configBuffer.surfaceNumber, fourcc)) {
         return YAMI_DECODE_FORMAT_CHANGE;
     }
 
