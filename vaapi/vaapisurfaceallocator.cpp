@@ -64,6 +64,7 @@ YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
         params->surfaces[i] = (intptr_t)v[i];
     }
     params->size = size;
+
     return YAMI_SUCCESS;
 }
 

@@ -1,6 +1,11 @@
 libyami_codecparser_source_c = \
+	$(NULL)
+
+if !BUILD_FASTBOOT
+libyami_codecparser_source_c += \
 	dboolhuff.c \
 	$(NULL)
+endif
 
 if BUILD_DECODER
 libyami_codecparser_source_c += \
@@ -61,8 +66,13 @@ endif
 
 
 libyami_codecparser_source_h_priv = \
+	$(NULL)
+
+if !BUILD_FASTBOOT
+libyami_codecparser_source_h_priv += \
 	dboolhuff.h \
 	$(NULL)
+endif
 
 if BUILD_DECODER
 libyami_codecparser_source_h_priv += \

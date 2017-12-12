@@ -2,11 +2,14 @@ libyami_common_source_c = \
 	log.cpp \
 	utils.cpp \
 	surfacepool.cpp \
-	PooledFrameAllocator.cpp \
 	YamiVersion.cpp \
-	Thread.cpp \
 	$(NULL)
 
+if !BUILD_FASTBOOT
+libyami_common_source_c += PooledFrameAllocator.cpp \
+	Thread.cpp \
+	$(NULL)
+endif
 
 if BUILD_DECODER
 libyami_common_source_c += nalreader.cpp \
@@ -26,8 +29,13 @@ libyami_common_source_h_priv = \
 	common_def.h \
 	videopool.h \
 	surfacepool.h \
+	$(NULL)
+
+if !BUILD_FASTBOOT
+libyami_common_source_h_priv += \
 	Thread.h \
 	$(NULL)
+endif
 
 if BUILD_DECODER
 libyami_common_source_h_priv += nalreader.h \
@@ -38,8 +46,13 @@ libyami_common_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(LIBVA_LIBS) \
 	$(LIBVA_DRM_LIBS) \
+	$(NULL)
+
+if !BUILD_FASTBOOT
+libyami_common_ldflags += \
 	-lpthread \
 	$(NULL)
+endif
 
 #to compile within yocto
 extra_includes = \

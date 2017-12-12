@@ -405,6 +405,15 @@ AC_ARG_ENABLE(capi,
 AM_CONDITIONAL(BUILD_CAPI,
     [test "x$enable_capi" = "xyes"])
 
+dnl fastboot
+AC_ARG_ENABLE(fastboot,
+    [AC_HELP_STRING([--enable-fastboot],
+        [build with fastboot support @<:@default=no@:>@])],
+    [], [enable_fastboot="no"])
+
+AM_CONDITIONAL(BUILD_FASTBOOT,
+    [test "x$enable_fastboot" = "xyes"])
+
 dnl encoder getmv
 AC_ARG_ENABLE(getmv,
     [AC_HELP_STRING([--enable-getmv],
