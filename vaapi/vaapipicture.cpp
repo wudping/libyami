@@ -81,6 +81,8 @@ bool VaapiPicture::render(BufObjectPtr& buffer)
     if (!checkVaapiStatus(status, "vaRenderPicture failed"))
         return false;
 
+    printf("dpwu  %s %s %d, render(BufObjectPtr& buffer) ====\n", __FILE__, __FUNCTION__, __LINE__);
+
     //buffer.reset();             // silently work  arouond for psb
     return true;
 }

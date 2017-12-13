@@ -35,7 +35,22 @@ VaapiDecPicture::VaapiDecPicture()
 
 bool VaapiDecPicture::decode()
 {
-    return render();
+    bool ret = false;
+
+    ret = render();
+    m_picture.reset();
+    m_probTable.reset();
+    m_iqMatrix.reset();
+    m_bitPlane.reset();
+    m_hufTable.reset();
+    //m_slices.reset();
+    for (uint32_t i = 0; i < m_slices.size(); i++){
+        m_slices[i].first.reset();
+        m_slices[i].second.reset();
+    }
+    m_slices.clear(); // slient work around for psb drv to delete VABuffer
+
+    return ret;
 }
 
 bool VaapiDecPicture::doRender()

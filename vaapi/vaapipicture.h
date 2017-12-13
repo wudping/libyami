@@ -25,6 +25,7 @@
 #include <va/va.h>
 #include <vector>
 #include <utility>
+#include <stdio.h>
 
 namespace YamiMediaCodec{
 
@@ -114,11 +115,15 @@ template <class O>
 bool VaapiPicture::render(std::vector<O>& objects)
 {
     bool ret = true;
+    
+    printf("dpwu  %s %s %d, objects.size() = %ld ====\n", __FILE__, __FUNCTION__, __LINE__, objects.size());
 
     for (uint32_t i = 0; i < objects.size(); i++)
         ret &= render(objects[i]);
 
     //objects.clear(); // slient work around for psb drv to delete VABuffer
+    
+    printf("dpwu  %s %s %d, render(std::vector<O>& objects) ====\n", __FILE__, __FUNCTION__, __LINE__);
     return ret;
 }
 
