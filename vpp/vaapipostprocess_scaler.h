@@ -59,6 +59,9 @@ private:
     typedef std::map<VppColorBalanceMode, ColorBalanceParam> ColorBalanceMap;
     typedef ColorBalanceMap::iterator ColorBalanceMapItr;
 
+    uint32_t mapToVARotationState(VppTransform vppTransform);
+    void setRotationState(VAProcPipelineParameterBuffer* vppParam);
+
     bool mapToRange(float& value, float min, float max,
         int32_t level, int32_t minLevel, int32_t maxLevel);
 
@@ -83,6 +86,7 @@ private:
     ProcParams m_sharpening;
     DeinterlaceParams m_deinterlace;
     ColorBalanceMap m_colorBalance;
+    VppTransform m_transform;
 
     /**
      * VaapiPostProcessFactory registration result. This postprocess is
