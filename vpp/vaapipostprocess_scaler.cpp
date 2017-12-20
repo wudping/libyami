@@ -70,6 +70,7 @@ VaapiPostProcessScaler::VaapiPostProcessScaler()
 
 bool VaapiPostProcessScaler::getFilters(std::vector<VABufferID>& filters)
 {
+    uint32_t i_dpwu = 0;
     if (m_denoise.filter) {
         filters.push_back(m_denoise.filter->getID());
     }
@@ -80,9 +81,12 @@ bool VaapiPostProcessScaler::getFilters(std::vector<VABufferID>& filters)
         filters.push_back(m_deinterlace.filter->getID());
     }
 
+    i_dpwu = 0;
     for (ColorBalanceMapItr itr = m_colorBalance.begin(); itr != m_colorBalance.end(); itr++) {
         if (itr->second.filter) {
+            printf("dpwu  %s %s %d, i_dpwu = %d, itr->second.filter->getID() = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, i_dpwu, itr->second.filter->getID());
             filters.push_back(itr->second.filter->getID());
+            i_dpwu++;
         }
     }
     return !filters.empty();
@@ -92,6 +96,8 @@ void VaapiPostProcessScaler::setRotationState(VAProcPipelineParameterBuffer* vpp
 {
     uint32_t vaTransform;
     vaTransform = mapToVARotationState(m_transform);
+    
+    printf("dpwu  %s %s %d, vaTransform = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, vaTransform);
     if (vaTransform != VA_ROTATION_NONE)
         vppParam->rotation_state = vaTransform;
     return;
@@ -292,12 +298,15 @@ VaapiPostProcessScaler::createColorBalanceFilters(ColorBalanceParam& clrBalance,
     }
 
     VAProcFilterParameterBufferColorBalance* d;
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     clrBalance.filter = VaapiBuffer::create(m_context, VAProcFilterParameterBufferType, d);
     if (!clrBalance.filter)
         return YAMI_DRIVER_FAIL;
     d->type = VAProcFilterColorBalance;
     d->attrib = clrBalance.type;
     d->value = value;
+
+    printf("dpwu  %s %s %d, d->attrib = 0x%x, d->value = %f ====\n", __FILE__, __FUNCTION__, __LINE__, d->attrib, d->value);
 
     //unmap for va usage
     clrBalance.filter->unmap();

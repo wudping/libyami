@@ -22,6 +22,7 @@
 
 #include <va/va.h>
 #include <stdint.h>
+#include <stdio.h>
 
 namespace YamiMediaCodec {
 
@@ -56,6 +57,7 @@ template <class T>
 BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     VABufferType type, T*& mapped)
 {
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     BufObjectPtr p = create(context, type, sizeof(T), NULL, (void**)&mapped);
     if (p) {
         if (mapped) {
