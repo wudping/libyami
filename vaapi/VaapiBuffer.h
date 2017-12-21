@@ -29,16 +29,16 @@ namespace YamiMediaCodec {
 class VaapiBuffer {
 public:
     static BufObjectPtr create(const ContextPtr&,
-        VABufferType,
+        VABufferType type,
         uint32_t size,
         const void* data = 0,
         void** mapped = 0);
-    
+
     static BufObjectPtr create(const ContextPtr& context,
         VABufferType type,
         uint32_t size,
-        const VAProcFilterParameterBufferColorBalance* data,
-        int num);
+        const void* data,
+        uint32_t num);
 
     template <class T>
     static BufObjectPtr create(const ContextPtr&,

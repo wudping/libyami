@@ -81,12 +81,14 @@ private:
     YamiStatus createDeinterlaceFilter(const VPPDeinterlaceParameters&);
     YamiStatus setColorBalanceParam(const VPPColorBalanceParameter&);
     YamiStatus createColorBalanceFilters(ColorBalanceParam& clrBalance, const VPPColorBalanceParameter& vppClrBalance);
+    YamiStatus createColorBalanceFilters_new(ColorBalanceParam& clrBalance, const VPPColorBalanceParameter& vppClrBalance);
 
     ProcParams m_denoise;
     ProcParams m_sharpening;
     DeinterlaceParams m_deinterlace;
     ColorBalanceMap m_colorBalance;
     VppTransform m_transform;
+    VAProcFilterParameterBufferColorBalance m_colorBalanceParam[COLORBALANCE_COUNT + 1];
 
     /**
      * VaapiPostProcessFactory registration result. This postprocess is

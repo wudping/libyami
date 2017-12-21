@@ -353,12 +353,66 @@ VaapiPostProcessScaler::createColorBalanceFilters(ColorBalanceParam& clrBalance,
 
     printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     //clrBalance.filter = VaapiBuffer::create(m_context, VAProcFilterParameterBufferType, d);
+
     clrBalance.filter = VaapiBuffer::create(m_context,
         VAProcFilterParameterBufferType,
         sizeof(color_balance_param),
-        color_balance_param,
+        (void*)color_balance_param,
         4);
 
+    if (!clrBalance.filter)
+        return YAMI_DRIVER_FAIL;
+
+    //unmap for va usage
+    //clrBalance.filter->unmap();
+    clrBalance.level = vppClrBalance.level;
+    return YAMI_SUCCESS;
+}
+#endif
+
+#if (1)
+YamiStatus
+VaapiPostProcessScaler::createColorBalanceFilters_new(ColorBalanceParam& clrBalance, const VPPColorBalanceParameter& vppClrBalance)
+{
+    float value;
+
+    if (!mapToRange(value, clrBalance.range.min_value, clrBalance.range.max_value, vppClrBalance.level, COLORBALANCE_LEVEL_MIN, COLORBALANCE_LEVEL_MAX)) {
+        return YAMI_DRIVER_FAIL;
+    }
+
+    VAProcFilterParameterBufferColorBalance color_balance_param[4];
+    //(-180 ~ 180, default 0)
+    value = 5.0;
+    color_balance_param[0].attrib  = VAProcColorBalanceHue; 
+    color_balance_param[0].value = value;
+    color_balance_param[0].type  = VAProcFilterColorBalance;
+    
+    /*(0.0 ~ 10.0, default 1.0)*/
+    value = 2.0;
+    color_balance_param[1].attrib  = VAProcColorBalanceSaturation; 
+    color_balance_param[1].value = value;
+    color_balance_param[1].type  = VAProcFilterColorBalance;
+
+    /*(-100 ~ 100, default 0)*/
+    value = 1.0;
+    color_balance_param[2].attrib  = VAProcColorBalanceBrightness; 
+    color_balance_param[2].value = value;
+    color_balance_param[2].type  = VAProcFilterColorBalance;
+    
+    /*(0.0 ~ 10.0, default 1.0)*/
+    value = 1.0;
+    color_balance_param[3].attrib  = VAProcColorBalanceContrast;    
+    color_balance_param[3].value = value;
+    color_balance_param[3].type  = VAProcFilterColorBalance;
+
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
+    //clrBalance.filter = VaapiBuffer::create(m_context, VAProcFilterParameterBufferType, d);
+
+    clrBalance.filter = VaapiBuffer::create(m_context,
+        VAProcFilterParameterBufferType,
+        sizeof(color_balance_param),
+        (void*)color_balance_param,
+        4);
 
     if (!clrBalance.filter)
         return YAMI_DRIVER_FAIL;
@@ -400,6 +454,7 @@ YamiStatus VaapiPostProcessScaler::setDeinterlaceParam(const VPPDeinterlaceParam
     return createDeinterlaceFilter(deinterlace);
 }
 
+#if (0)
 YamiStatus VaapiPostProcessScaler::setColorBalanceParam(const VPPColorBalanceParameter& colorbalance)
 {
     VAProcFilterCapColorBalance caps[VAProcColorBalanceCount];
@@ -448,6 +503,58 @@ YamiStatus VaapiPostProcessScaler::setColorBalanceParam(const VPPColorBalancePar
 
     return createColorBalanceFilters(iteratorClrBalance->second, colorbalance);
 }
+#endif
+
+#if (1)
+YamiStatus VaapiPostProcessScaler::setColorBalanceParam(const VPPColorBalanceParameter& colorbalance)
+{
+    VAProcFilterCapColorBalance caps[VAProcColorBalanceCount];
+    VppColorBalanceMode vppClrBalanceMode;
+    if (m_colorBalance.empty()) {
+        uint32_t num = VAProcColorBalanceCount;
+        //query from libva.
+        YamiStatus status = queryVideoProcFilterCaps(VAProcFilterColorBalance, caps, &num);
+        if (status != YAMI_SUCCESS)
+            return status;
+        for (uint32_t i = 0; i < num; i++) {
+            if (mapToVppColorBalanceMode(vppClrBalanceMode, caps[i].type)) {
+                m_colorBalance[vppClrBalanceMode].range = caps[i].range;
+                m_colorBalance[vppClrBalanceMode].type = caps[i].type;
+                m_colorBalance[vppClrBalanceMode].level = COLORBALANCE_LEVEL_NONE;
+            }
+        }
+    }
+
+    if(COLORBALANCE_NONE == colorbalance.mode){
+        for (ColorBalanceMapItr itr = m_colorBalance.begin(); itr != m_colorBalance.end(); itr++) {
+            if (itr->second.filter) {
+                itr->second.filter.reset();
+                itr->second.level = COLORBALANCE_LEVEL_NONE;
+            }
+        }
+        return YAMI_SUCCESS;
+    }
+
+    ColorBalanceMapItr iteratorClrBalance = m_colorBalance.find(colorbalance.mode);
+    if (iteratorClrBalance == m_colorBalance.end()) {
+        ERROR("unsupported VppColorBalanceMode: %d", colorbalance.mode);
+        return YAMI_UNSUPPORTED;
+    }
+
+    if (colorbalance.level == COLORBALANCE_LEVEL_NONE) {
+        if (iteratorClrBalance->second.filter)
+            iteratorClrBalance->second.filter.reset();
+        iteratorClrBalance->second.level = colorbalance.level;
+        return YAMI_SUCCESS;
+    }
+
+    if (colorbalance.level == iteratorClrBalance->second.level) {
+        return YAMI_SUCCESS;
+    }
+
+    return createColorBalanceFilters(iteratorClrBalance->second, colorbalance);
+}
+#endif
 
 YamiStatus
 VaapiPostProcessScaler::setParameters(VppParamType type, void* vppParam)
