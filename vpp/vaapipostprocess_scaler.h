@@ -88,7 +88,6 @@ private:
     YamiStatus createColorBalanceFilters(ColorBalanceParams& clrBalance, const VPPColorBalanceParameter& vppClrBalance);
     YamiStatus createColorBalanceFilters_new(ColorBalanceParams& clrBalance, const VPPColorBalanceParameter& vppClrBalance);
     YamiStatus ensureColorBalanceFilter();
-    bool isColorBalanceChanged() const;
 
     ProcParams m_denoise;
     ProcParams m_sharpening;
