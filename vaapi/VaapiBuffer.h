@@ -34,11 +34,10 @@ public:
         const void* data = 0,
         void** mapped = 0);
     
-    BufObjectPtr create(const ContextPtr& context,
+    static BufObjectPtr create(const ContextPtr& context,
         VABufferType type,
         uint32_t size,
         const VAProcFilterParameterBufferColorBalance* data,
-        void** mapped,
         int num);
 
     template <class T>
