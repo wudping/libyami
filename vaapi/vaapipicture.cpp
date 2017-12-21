@@ -72,8 +72,9 @@ bool VaapiPicture::render(BufObjectPtr& buffer)
         return true;
 
     buffer->unmap();
-
+    
     bufferID = buffer->getID();
+    printf("dpwu  %s %s %d, bufferID = 0x%x, VA_INVALID_ID = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, bufferID, VA_INVALID_ID);
     if (bufferID == VA_INVALID_ID)
         return false;
 

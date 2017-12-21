@@ -38,6 +38,7 @@ bool VaapiVppPicture::process()
 
 bool VaapiVppPicture::doRender()
 {
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
     RENDER_OBJECT(m_vppParam);
     return true;
 }

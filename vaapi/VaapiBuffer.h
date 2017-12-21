@@ -33,10 +33,21 @@ public:
         uint32_t size,
         const void* data = 0,
         void** mapped = 0);
+    
+    BufObjectPtr create(const ContextPtr& context,
+        VABufferType type,
+        uint32_t size,
+        const VAProcFilterParameterBufferColorBalance* data,
+        void** mapped,
+        int num);
 
     template <class T>
     static BufObjectPtr create(const ContextPtr&,
         VABufferType, T*& mapped);
+
+    template <class T>
+    BufObjectPtr create(const ContextPtr& context,
+        VABufferType type, T*& mapped, int num);
 
     void* map();
     void unmap();
@@ -70,6 +81,7 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     }
     return p;
 }
+
 }
 
 #endif //VaapiBuffer_h

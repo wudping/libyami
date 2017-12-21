@@ -43,6 +43,36 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
         type, size, 1, (void*)data, &id);
     if (!checkVaapiStatus(status, "vaCreateBuffer"))
         return buf;
+    printf("dpwu  %s %s %d, id = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, id);
+    buf.reset(new VaapiBuffer(display, id, size));
+    if (mapped) {
+        *mapped = buf->map();
+        if (!*mapped)
+            buf.reset();
+    }
+    return buf;
+}
+
+
+BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
+    VABufferType type,
+    uint32_t size,
+    const VAProcFilterParameterBufferColorBalance* data,
+    void** mapped,
+    int num)
+{
+    BufObjectPtr buf;
+    if (!size || !context || !context->getDisplay()){
+        ERROR("vaapibuffer: can't create buffer");
+        return buf;
+    }
+    DisplayPtr display = context->getDisplay();
+    VABufferID id;
+    VAStatus status = vaCreateBuffer(display->getID(), context->getID(),
+        type, size, num, (void*)data, &id);
+    if (!checkVaapiStatus(status, "vaCreateBuffer"))
+        return buf;
+    printf("dpwu  %s %s %d, id = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, id);
     buf.reset(new VaapiBuffer(display, id, size));
     if (mapped) {
         *mapped = buf->map();

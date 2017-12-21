@@ -114,6 +114,8 @@ template <class O>
 bool VaapiPicture::render(std::vector<O>& objects)
 {
     bool ret = true;
+    
+    printf("dpwu  %s %s %d ====\n", __FILE__, __FUNCTION__, __LINE__);
 
     for (uint32_t i = 0; i < objects.size(); i++)
         ret &= render(objects[i]);
