@@ -64,6 +64,9 @@ private:
         ColorBalanceMap colorBalance;
     };
 
+    uint32_t mapToVARotationState(VppTransform vppTransform);
+    void setRotationState(VAProcPipelineParameterBuffer* vppParam);
+
     bool mapToRange(float& value, float min, float max,
         int32_t level, int32_t minLevel, int32_t maxLevel);
 
@@ -89,6 +92,7 @@ private:
     DeinterlaceParams m_deinterlace;
     ColorBalanceParams m_colorBalance;
     bool m_colorBalanceChanged;
+    VppTransform m_transform;
 
     /**
      * VaapiPostProcessFactory registration result. This postprocess is
