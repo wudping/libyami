@@ -94,7 +94,6 @@ void VaapiPostProcessScaler::setRotationState(VAProcPipelineParameterBuffer* vpp
         uint32_t vaTransform;
         vaTransform = mapToVARotationState(m_transform);
 
-        printf("dpwu  %s %s %d, vaTransform = 0x%x ====\n", __FILE__, __FUNCTION__, __LINE__, vaTransform);
         if (vaTransform != VA_ROTATION_NONE)
             vppParam->rotation_state = vaTransform;
     }

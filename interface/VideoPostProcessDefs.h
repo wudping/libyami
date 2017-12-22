@@ -106,17 +106,6 @@ typedef enum VppColorBalanceMode {
     COLORBALANCE_COUNT
 } VppColorBalanceMode;
 
-typedef struct ColorBalance {
-    VppColorBalanceMode mode;
-    int32_t level;
-} ColorBalance;
-
-typedef struct VPPColorBalanceParameterNew {
-    size_t size;
-    uint32_t colorBalanceNum;
-    ColorBalance colorBalance[COLORBALANCE_COUNT + 1];
-} VPPColorBalanceParameterNew;
-
 typedef struct VPPColorBalanceParameter {
     size_t size;
     VppColorBalanceMode mode;
