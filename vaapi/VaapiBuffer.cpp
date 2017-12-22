@@ -52,6 +52,27 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     return buf;
 }
 
+BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
+    VABufferType type,
+    uint32_t size,
+    const void* data,
+    uint32_t num)
+{
+    BufObjectPtr buf;
+    if (!context || !context->getDisplay() || !data || !num || !size) {
+        ERROR("vaapibuffer: can't create buffer");
+        return buf;
+    }
+    DisplayPtr display = context->getDisplay();
+    VABufferID id;
+    VAStatus status = vaCreateBuffer(display->getID(), context->getID(),
+        type, size, num, (void*)data, &id);
+    if (!checkVaapiStatus(status, "vaCreateBuffer"))
+        return buf;
+    buf.reset(new VaapiBuffer(display, id, size));
+    return buf;
+}
+
 void* VaapiBuffer::map()
 {
     if (!m_data) {
