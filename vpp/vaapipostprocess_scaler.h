@@ -49,15 +49,20 @@ private:
         BufObjectPtr filter; //send to va;
     };
 
-    struct ColorBalanceParam {
-        BufObjectPtr filter; //send to va;
-        int32_t level; //send to va
+    struct ColorBalanceProperty {
+        int32_t level; //set by user
+        float value; //set to libva
         VAProcColorBalanceType type; //query from va
         VAProcFilterValueRange range; //query from va
     };
 
-    typedef std::map<VppColorBalanceMode, ColorBalanceParam> ColorBalanceMap;
+    typedef std::map<VppColorBalanceMode, ColorBalanceProperty> ColorBalanceMap;
     typedef ColorBalanceMap::iterator ColorBalanceMapItr;
+
+    struct ColorBalanceParams {
+        BufObjectPtr filter; //send to va;
+        ColorBalanceMap colorBalance;
+    };
 
     bool mapToRange(float& value, float min, float max,
         int32_t level, int32_t minLevel, int32_t maxLevel);
@@ -77,12 +82,13 @@ private:
     YamiStatus setDeinterlaceParam(const VPPDeinterlaceParameters&);
     YamiStatus createDeinterlaceFilter(const VPPDeinterlaceParameters&);
     YamiStatus setColorBalanceParam(const VPPColorBalanceParameter&);
-    YamiStatus createColorBalanceFilters(ColorBalanceParam& clrBalance, const VPPColorBalanceParameter& vppClrBalance);
+    YamiStatus ensureColorBalanceFilter();
 
     ProcParams m_denoise;
     ProcParams m_sharpening;
     DeinterlaceParams m_deinterlace;
-    ColorBalanceMap m_colorBalance;
+    ColorBalanceParams m_colorBalance;
+    bool m_colorBalanceChanged;
 
     /**
      * VaapiPostProcessFactory registration result. This postprocess is
