@@ -42,6 +42,7 @@ public:
     virtual YamiStatus process(const SharedPtr<VideoFrame>& src,
                                const SharedPtr<VideoFrame>& dest) = 0;
     virtual YamiStatus setParameters(VppParamType type, void* vppParam) { return YAMI_INVALID_PARAM; }
+    virtual YamiStatus getParameters(VppParamType type, void* vppParam) { return YAMI_INVALID_PARAM; }
     virtual ~VaapiPostProcessBase();
 protected:
     //NativeDisplay   m_externalDisplay;

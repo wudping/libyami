@@ -37,6 +37,7 @@ class IVideoPostProcess {
     virtual YamiStatus process(const SharedPtr<VideoFrame>& src,
                                const SharedPtr<VideoFrame>& dest) = 0;
     virtual YamiStatus setParameters(VppParamType type, void* vppParam) = 0;
+    virtual YamiStatus getParameters(VppParamType type, void* vppParam) = 0;
     virtual ~IVideoPostProcess() {}
 };
 }

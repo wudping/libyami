@@ -45,6 +45,10 @@ public:
     {
         return YAMI_SUCCESS;
     }
+    virtual YamiStatus getParameters(VppParamType type, void* vppParam)
+    {
+        return YAMI_SUCCESS;
+    }
     OclPostProcessBase();
     virtual ~OclPostProcessBase();
 
