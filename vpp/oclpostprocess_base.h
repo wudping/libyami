@@ -17,6 +17,8 @@
 #ifndef oclpostprocess_base_h
 #define oclpostprocess_base_h
 
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+
 #include "VideoPostProcessInterface.h"
 #include <CL/opencl.h>
 #include <ocl/oclcontext.h>

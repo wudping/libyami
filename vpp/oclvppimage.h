@@ -17,6 +17,8 @@
 #ifndef oclvppimage_h
 #define oclvppimage_h
 
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+
 #include "VideoCommonDefs.h"
 #include <CL/opencl.h>
 #include <va/va.h>

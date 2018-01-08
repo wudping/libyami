@@ -16,6 +16,7 @@
 #ifndef oclcontext_h
 #define oclcontext_h
 
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
 #include "VideoCommonDefs.h"
 #include "common/lock.h"
