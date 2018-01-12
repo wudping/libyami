@@ -38,6 +38,8 @@ using std::ref;
 using std::vector;
 using namespace YamiParser::H264;
 
+#define SURFACE_NUM_FOR_CURRENT_PICTURE 1
+
 class VaapiDecPictureH264 : public VaapiDecPicture {
 public:
     VaapiDecPictureH264(const ContextPtr& context, const SurfacePtr& surface,
@@ -1211,6 +1213,8 @@ bool VaapiDecoderH264::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
 
 YamiStatus VaapiDecoderH264::start(VideoConfigBuffer* buffer)
 {
+    m_configBuffer = *buffer;
+
     if (buffer->data && buffer->size > 0) {
         if (!decodeAvcRecordData(buffer->data, buffer->size)) {
             ERROR("decode record data failed");
@@ -1219,6 +1223,9 @@ YamiStatus VaapiDecoderH264::start(VideoConfigBuffer* buffer)
     }
 
     m_dpb.m_isLowLatencymode = buffer->enableLowLatency;
+    if (m_configBuffer.extraSurfaceNum)
+        m_extraSurfaceNum = m_configBuffer.extraSurfaceNum;
+
     return YAMI_SUCCESS;
 }
 
@@ -1613,6 +1620,7 @@ uint32_t calcMaxDecFrameBufferingNum(const SharedPtr<SPS>& sps)
 bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
 {
     uint32_t maxDecFrameBuffering;
+    uint32_t surfaceNumber;
 
     maxDecFrameBuffering = calcMaxDecFrameBufferingNum(sps);
 
@@ -1625,7 +1633,12 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
                                               : sps->m_width;
     uint32_t height = sps->frame_cropping_flag ? sps->m_cropRectHeight
                                                : sps->m_height;
-    if (setFormat(width, height, sps->m_width, sps->m_height, maxDecFrameBuffering + 1)) {
+
+    if (m_dpb.m_isLowLatencymode)
+        surfaceNumber = sps->num_ref_frames + SURFACE_NUM_FOR_CURRENT_PICTURE;
+    else
+        surfaceNumber = maxDecFrameBuffering + SURFACE_NUM_FOR_CURRENT_PICTURE;
+    if (setFormat(width, height, sps->m_width, sps->m_height, surfaceNumber)) {
         if (isSurfaceGeometryChanged()) {
             decodeCurrent();
             m_dpb.flush();
@@ -1747,7 +1760,7 @@ YamiStatus VaapiDecoderH264::decodeSlice(NalUnit* nalu)
             return status;
         if (!m_currPic
             || !m_dpb.init(m_currPic, m_prevPic, slice, nalu, m_newStream,
-                   m_contextChanged, m_videoFormatInfo.surfaceNumber))
+                   m_contextChanged, m_videoFormatInfo.surfaceNumber - SURFACE_NUM_FOR_CURRENT_PICTURE))
             return YAMI_DECODE_INVALID_DATA;
         m_contextChanged = false;
         if (!fillPicture(m_currPic, slice) || !fillIqMatrix(m_currPic, slice))
